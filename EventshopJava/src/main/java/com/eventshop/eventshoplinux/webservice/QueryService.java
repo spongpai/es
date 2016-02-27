@@ -29,8 +29,12 @@ public class QueryService {
     @Path("/createQuery")
     public String createQuery(Query query) {
         QueryDao queryDao = new QueryDao();
-        int id = queryDao.registerQuery(query);
-        return String.valueOf(id);
+        if(query.getQuery_creator_id() != 78) {
+            // this user causes a problem because it doesn't exist
+            int id = queryDao.registerQuery(query);
+            return String.valueOf(id);
+        }
+        return "Invalid User ID 78";
     }
 
     @DELETE

@@ -34,10 +34,13 @@ public class DataSourceService {
     @Path("/createDataSource")
     public String createDataSource(DataSource dataSource) {
         DataSourceDao dataSourceDao = new DataSourceDao();
-        int id = dataSourceDao.registerDatasource(dataSource);
-        //Update Data Cache
-        DataCache.updateRegisteredSources();
-        return String.valueOf(id);
+        if(dataSource.getUser_Id() != 78) { // this user causes a problem because it doesn't exist
+            int id = dataSourceDao.registerDatasource(dataSource);
+            //Update Data Cache
+            DataCache.updateRegisteredSources();
+            return String.valueOf(id);
+        } else
+            return "invalid user id: " + dataSource.getUser_Id();
     }
 
     @DELETE
