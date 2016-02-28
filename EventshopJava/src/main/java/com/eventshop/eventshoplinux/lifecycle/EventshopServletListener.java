@@ -68,6 +68,7 @@ public class EventshopServletListener implements ServletContextListener {
             CamelExtension.get(actorSystem).context().addRoutes(new CsvRoute());
             CamelExtension.get(actorSystem).context().addRoutes(new EmageRoute());
             CamelExtension.get(actorSystem).context().addRoutes(new JsonRoute());
+            CamelExtension.get(actorSystem).context().addRoutes(new MediaJsonRoute());
             CamelExtension.get(actorSystem).context().addRoutes(new KafkaToMongoRoute());
             CamelExtension.get(actorSystem).context().addRoutes(new MongoRoute());
             CamelExtension.get(actorSystem).context().addRoutes(new PopulateKafkaRoute());

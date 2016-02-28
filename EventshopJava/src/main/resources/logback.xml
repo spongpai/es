@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<configuration debug="false">
+<configuration>
 
     <contextListener class="ch.qos.logback.classic.jul.LevelChangePropagator"/>
 
+    <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+        <layout class="ch.qos.logback.classic.PatternLayout">
+            <Pattern>
+                %d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n
+            </Pattern>
+        </layout>
+    </appender>
+
     <appender name="LOGFILE" class="ch.qos.logback.core.FileAppender">
-        <file>${catalina.base}/logs/eventshop.log</file>
+        <file>/tmp/dabuntu-logs/eventshop.log</file>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
-    C
+
     <root level="INFO">
+        <appender-ref ref="STDOUT"/>
         <appender-ref ref="LOGFILE"/>
     </root>
 

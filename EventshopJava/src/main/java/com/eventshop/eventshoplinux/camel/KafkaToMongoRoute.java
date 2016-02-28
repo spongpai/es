@@ -21,6 +21,9 @@ import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.component.kafka.KafkaConstants;
+import org.codehaus.jettison.json.JSONArray;
+import org.codehaus.jettison.json.JSONObject;
+import org.joda.time.DateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import twitter4j.Status;
@@ -32,6 +35,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
 /**
  * Created by nandhiniv on 7/24/15.
  */
@@ -187,8 +192,6 @@ public class KafkaToMongoRoute extends RouteBuilder {
                             //Parse the map and check the corresponding index exists and update the syntax json to the document
                             // going to be inserted in Mongo
                             for (ConcurrentHashMap.Entry<String, Object> entry : map.entrySet()) {
-
-
                                 try {
                                     String Key = entry.getKey().replace(".", "_");
                                     String keyPath = Key + "_path";
@@ -494,92 +497,256 @@ public class KafkaToMongoRoute extends RouteBuilder {
                 .when(header("mPath").isNotNull())
                 .recipientList(header("mPath"))
         ;
-                    /**
-                     * Consumes from Twitter Kafka and populates Mongo
-                     */
-                    from("direct:twitterProcess")
-                            .process(new Processor() {
-                                         @Override
-                                         public void process(Exchange exchange) throws Exception {
-                                             DataSource dataSource = exchange.getIn().getHeader("datasource", DataSource.class);
-                                             List<Status> statusList = exchange.getIn().getBody(ArrayList.class);
-                                             List<STT> sttList = new ArrayList<STT>();
-                                             for (Status status : statusList) {
-                                                 if (status.getGeoLocation() != null) {
-                                                     STT stt = new STT();
-                                                     stt.setRawData(status.getText().toString());
-                                                     stt.setTheme(dataSource.getSrcTheme());
-                                                     stt.setLoc(new ELocation(status.getGeoLocation().getLongitude(), status.getGeoLocation().getLatitude()));
-                                                     stt.set_id(Long.valueOf(status.getId()));
-                                                     stt.setTimestamp(status.getCreatedAt());
-                                                     stt.setValue(1.0);
-                                                     sttList.add(stt);
+
+        /**
+         * Consumes from kafka topic and converts to STT and populates Mongo
+         */
+        from("direct:mjson")
+                .aggregate(header("kafka.TOPIC"), new SimpleAggregationStrategy())
+                .completionSize(100)
+                .completionInterval(3000)
+                .process(new Processor() {
+                             @Override
+                             public void process(Exchange exchange) throws Exception {
+
+                                 LOGGER.info("Consuming from Kafka in media Json******");
+                                 exchange.getOut().setHeaders(exchange.getIn().getHeaders());
+                                 List<DBObject> dbObjectList = new ArrayList<DBObject>();
+
+                                 System.out.println("Consuming from Kafka in media Json");
+
+                                 String ds = exchange.getIn().getHeader("kafka.TOPIC", String.class);
+                                 LOGGER.info("DS: " + ds);
+                                 ds = ds.replace("ds", "");
+
+                                 DataSource dataSource = DataCache.registeredDataSources.get(ds);
+                                 String input = exchange.getIn().getBody(String.class);
+                                 LOGGER.info("inputData: " + input);
+                                 JsonParser parser = new JsonParser();
+
+                                 // validate jsonelement
+                                 JsonElement inputJson = parser.parse(input);
+                                 JsonArray inputJsonArray = new JsonArray();
+                                 if (inputJson.isJsonObject()) {
+                                     inputJsonArray.add(inputJson.getAsJsonObject());
+                                 } else if(inputJson.isJsonArray()){
+                                     inputJsonArray = inputJson.getAsJsonArray();
+                                 }
+
+                                 for(int x  = 0; x< inputJsonArray.size(); x++) {
+                                     //JsonObject mediaJSON = parser.parse(input.toString()).getAsJsonObject();
+                                     JsonElement mediaElement= inputJsonArray.get(x);
+
+                                     if(!mediaElement.isJsonObject()){
+                                         continue;  // ignore this element, and continue to the next iteration
+                                     }
+                                     JsonObject mediaJSON = mediaElement.getAsJsonObject();
+                                     JsonArray mediaList = mediaJSON.getAsJsonArray("media");
+                                     LOGGER.info("number of media: " + mediaList.size());
+
+                                     DateTime minStartTime = new DateTime(System.currentTimeMillis());
+                                     double latitude = 999;
+                                     double longitude = 999;
+                                     StringBuilder sttWhat = new StringBuilder();
+                                     sttWhat.append("{");
+
+                                     for (int i = 0; i < mediaList.size(); i++) {
+                                         JsonObject aMedia = mediaList.get(i).getAsJsonObject();
+                                         LOGGER.info(i + ":" + aMedia.toString());
+                                         DateTime startTime = null;
+                                         if (aMedia.has("when")) {
+                                             String start = aMedia.get("when").getAsJsonObject().get("start_time").getAsString();
+                                             if (start.contains("T")) {
+                                                 DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                                                 startTime = dateFormat.parseDateTime(start);
+
+                                             } else {
+                                                 if (start.length() >= 13)    // you have millisecond (for data after 2001)
+                                                     startTime = new DateTime(Long.parseLong(start));
+                                                 else
+                                                     startTime = new DateTime(Long.parseLong(start) * 1000);
+                                             }
+                                             if (startTime != null && startTime.isBefore(minStartTime))
+                                                 minStartTime = startTime;
+                                         } else {
+                                             LOGGER.info("start_time is not found");
+                                         }
+
+                                         if (aMedia.has("where")) {
+                                             JsonObject where = aMedia.getAsJsonObject("where").getAsJsonObject("geo_location");
+                                             if (where.has("latitude") && where.has("longitude")) {
+                                                 latitude = Double.parseDouble(where.get("latitude").getAsString());
+                                                 longitude = Double.parseDouble(where.get("longitude").getAsString());
+                                             }
+                                             LOGGER.info("geo_location: " + latitude + ", " + longitude);
+                                         } else {
+                                             LOGGER.info("geo_location is not found");
+                                         }
+                                         // only store photo media
+                                         if (aMedia.has("media_type") && aMedia.has("media_source")) {
+                                             if (aMedia.get("media_type").getAsString().equalsIgnoreCase("photo")) {
+                                                 String photo_url = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
+                                                 sttWhat.append("\"media_source\":{\"value\":\"" + photo_url + "\",\"uncertainty\":0}, ");
+                                                 if (aMedia.has("why")) {
+                                                     JsonArray why = aMedia.getAsJsonArray("why");
+                                                     if (why.size() > 0) {
+                                                         JsonObject whyObj = why.get(0).getAsJsonObject();
+                                                         if (whyObj.has("intent_used_synonym")) {
+                                                             sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_used_synonym_index")) {
+                                                             sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_index_in_category")) {
+                                                             sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_name")) {
+                                                             sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_category_name")) {
+                                                             sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_category_id")) {
+                                                             sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_emoji_id")) {
+                                                             sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                         if (whyObj.has("intent_emoji_unicode")) {
+                                                             sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\",\"uncertainty\":0}, ");
+                                                         }
+                                                     }
+                                                 }
+                                                 if (aMedia.has("caption")) {
+                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\",\"uncertainty\":0}}");
+                                                 } else {
+                                                     sttWhat.append("\"caption\":{\"value\":\"\",\"uncertainty\":0}}");
                                                  }
                                              }
-                                             //    System.out.println("Inserting tweets with geo location. Tweet size is " + sttList.size());
-                                             String dsId = dataSource.getSrcID();
-                                             String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
-                                             System.out.println("mPath while insert in file route is " + mongoPath);
-                                             exchange.getOut().setHeader("mPath", mongoPath);
-                                             exchange.getOut().setBody(sttList);
-                                             exchange.getOut().setHeader("datasource", dataSource);
-                                             String operation = "sum";
-                                             exchange.getOut().setHeader("spatial_wrapper", operation);
                                          }
                                      }
-                            )
+                                     String id = "";
+                                     if (mediaJSON.has("id"))
+                                         id = mediaJSON.get("id").getAsString();
+
+                                     String sttJsonStr = "{\"stt_id\":\"" + id + "\","
+                                             + "\"stt_where\":{\"point\":[" + latitude + "," + longitude + "]},"
+                                             + "\"stt_when\":{\"datetime\":" + minStartTime.getMillis() + "},"
+                                             + "\"stt_what\":" + sttWhat.toString() + "}";
+
+                                     JsonObject stt = parser.parse(sttJsonStr).getAsJsonObject();
+                                     // add raw_data
+                                     stt.addProperty("raw_data", input);
+
+                                     // add ingestion timestamp
+                                     Date dateVal = new Date();
+                                     stt.addProperty("timestamp", dateVal.getTime());
+
+                                     LOGGER.debug("Line:" + stt.toString());
+                                     DBObject dbObj = (DBObject) JSON.parse(stt.toString());
+                                     //Add the document to the document list to update as a batch
+                                     dbObjectList.add(dbObj);
+                                 }
+
+                                 String dsId = dataSource.getSrcID();
+                                 String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
+                                 exchange.getOut().setHeader("mPath", mongoPath);
+                                 exchange.getOut().setBody(dbObjectList);
+                             }
+                         }
+                )
+                .choice()
+                .when(header("mPath").isNotNull())
+                .recipientList(header("mPath"))
+        ;
+
+        /**
+         * Consumes from Twitter Kafka and populates Mongo
+         */
+        from("direct:twitterProcess")
+                .process(new Processor() {
+                             @Override
+                             public void process(Exchange exchange) throws Exception {
+                                 DataSource dataSource = exchange.getIn().getHeader("datasource", DataSource.class);
+                                 List<Status> statusList = exchange.getIn().getBody(ArrayList.class);
+                                 List<STT> sttList = new ArrayList<STT>();
+                                 for (Status status : statusList) {
+                                     if (status.getGeoLocation() != null) {
+                                         STT stt = new STT();
+                                         stt.setRawData(status.getText().toString());
+                                         stt.setTheme(dataSource.getSrcTheme());
+                                         stt.setLoc(new ELocation(status.getGeoLocation().getLongitude(), status.getGeoLocation().getLatitude()));
+                                         stt.set_id(Long.valueOf(status.getId()));
+                                         stt.setTimestamp(status.getCreatedAt());
+                                         stt.setValue(1.0);
+                                         sttList.add(stt);
+                                     }
+                                 }
+                                 //    System.out.println("Inserting tweets with geo location. Tweet size is " + sttList.size());
+                                 String dsId = dataSource.getSrcID();
+                                 String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
+                                 System.out.println("mPath while insert in file route is " + mongoPath);
+                                 exchange.getOut().setHeader("mPath", mongoPath);
+                                 exchange.getOut().setBody(sttList);
+                                 exchange.getOut().setHeader("datasource", dataSource);
+                                 String operation = "sum";
+                                 exchange.getOut().setHeader("spatial_wrapper", operation);
+                             }
+                         }
+                )
 //                .to("mongodb:mongoBean?database=events&collection=twitter&operation=insert")
-                            .
+                .
 
-                    recipientList(header("mPath")
+        recipientList(header("mPath")
 
-                    );
-                    from("direct:directLoad")
-                            .convertBodyTo(String.class)
+        );
+        from("direct:directLoad")
+                .convertBodyTo(String.class)
 //                            .aggregate(header("kafka.TOPIC"), new SimpleAggregationStrategy())
 //                            .completionSize(100)
 //                            .completionInterval(3000)
-                            .process(new Processor() {
-                                @Override
-                                public void process(Exchange exchange) throws Exception {
-                                    System.out.println("Direct Load Initiated....");
+                .process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        System.out.println("Direct Load Initiated....");
 //                                    List<DBObject> dbObjectList = new ArrayList<DBObject>();
-                                    exchange.getOut().setHeaders(exchange.getIn().getHeaders());
-                                    String ds = exchange.getIn().getHeader(KafkaConstants.TOPIC, String.class);
-                                    ds = ds.replace("ds", "");
-                                    DataSource dataSource = DataCache.registeredDataSources.get(ds);
+                        exchange.getOut().setHeaders(exchange.getIn().getHeaders());
+                        String ds = exchange.getIn().getHeader(KafkaConstants.TOPIC, String.class);
+                        ds = ds.replace("ds", "");
+                        DataSource dataSource = DataCache.registeredDataSources.get(ds);
 
 //                                    List<String> resultList = exchange.getIn().getBody(ArrayList.class);
 //                                    for (String result : resultList) {
-                                    String result = exchange.getIn().getBody(String.class);
-                                        JsonParser parser = new JsonParser();
-                                    final JsonElement jsonElement = parser.parse(result);
-                                    DBObject dbObject;
-                                    JsonObject jObj = null;
-                                    if (jsonElement.isJsonObject()) {
-                                        jObj = jsonElement.getAsJsonObject();
-                                        dbObject = (DBObject) JSON.parse(jObj.toString());
-                                    } else if (jsonElement.isJsonArray()) {
-                                        JsonArray jsonArray = jsonElement.getAsJsonArray();
-                                        jObj = new JsonObject();
+                        String result = exchange.getIn().getBody(String.class);
+                            JsonParser parser = new JsonParser();
+                        final JsonElement jsonElement = parser.parse(result);
+                        DBObject dbObject;
+                        JsonObject jObj = null;
+                        if (jsonElement.isJsonObject()) {
+                            jObj = jsonElement.getAsJsonObject();
+                            dbObject = (DBObject) JSON.parse(jObj.toString());
+                        } else if (jsonElement.isJsonArray()) {
+                            JsonArray jsonArray = jsonElement.getAsJsonArray();
+                            jObj = new JsonObject();
 
 // populate the array
-                                        jObj.add("data", jsonArray);
-                                        dbObject = (DBObject) JSON.parse(jObj.toString());
-                                    }
-                                    exchange.getOut().setBody(jObj.toString());
-                                    String dsId = dataSource.getSrcID();
-                                    String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
-                                    exchange.getOut().setHeader("mPath", mongoPath);
-                                    LOGGER.info("Direct Load done...");
-                                }
-                            })
-                            .choice()
-                            .when(header("mPath").isNotNull())
-                            .recipientList(header("mPath"));
-                }
+                            jObj.add("data", jsonArray);
+                            dbObject = (DBObject) JSON.parse(jObj.toString());
+                        }
+                        exchange.getOut().setBody(jObj.toString());
+                        String dsId = dataSource.getSrcID();
+                        String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
+                        exchange.getOut().setHeader("mPath", mongoPath);
+                        LOGGER.info("Direct Load done...");
+                    }
+                })
+                .choice()
+                .when(header("mPath").isNotNull())
+                .recipientList(header("mPath"));
+    }
 
     public void run() {
+
         String input = "{\"media\":[{\"when\":{\"start_time\":\"2015-10-17T02:53:17.181Z\",\"end_time\":\"2015-10-17T02:53:22.181Z\"},\"where\":{\"geo_location\":{\"latitude\":28.613152,\"longitude\":77.272167},\"revgeo_places\":[{\"latitude\":28.613152,\"longitude\":77.272167,\"name\":\"Commonwealth Games Village\",\"category\":\"residential\",\"city\":\"New Delhi\",\"state\":\"Delhi\",\"country\":\"India\"}]},\"why\":[{\"intent_expression_id\":5,\"intent_expression_name\":\"Dirty Toilet\",\"intent_expression_display_name\":\"Clean This Now\",\"context_name\":\"CLEAN_INDIA\"}],\"what\":[{\"concept_name\":\"restroom\",\"confidence\":0.85},{\"concept_name\":\"box\",\"confidence\":0.65}],\"media_source\":{\"default_src\":\"http://data.krumbs.io/dirty-toilet.jpg\"}},{\"media_source\":{\"default_src\":\"http://data.krumbs.io/1441956664773.3gp\"}}],\"theme\":\"CLEAN_INDIA\",\"title\":\"Nightmare Toilets at Sports Complex\"}";
 
 //        JsonObject jObj = new JsonObject(input);
@@ -588,5 +755,13 @@ public class KafkaToMongoRoute extends RouteBuilder {
 
         System.out.println(System.currentTimeMillis());
 
+    }
+
+    public static void main(String[] args){
+        String start = "2016-02-27T10:24:28.829Z";
+        DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        DateTime startTime = dateFormat.parseDateTime(start);
+
+        System.out.println(startTime.getMillis());
     }
     }

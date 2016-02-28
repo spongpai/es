@@ -334,6 +334,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 					source.setSrcFormat(DataSource.DataFormat.visual);
 				else if (CSV.equals(format))
 					source.setSrcFormat(DataSource.DataFormat.file);
+				else if (SQS.equals(format))
+					source.setSrcFormat(DataSource.DataFormat.sqs);
+
 
 			}
 			// if(rs.next()) //get final frame param is not needed for
@@ -399,6 +402,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 					source.setSrcFormat(DataFormat.file);
 				else if (REST.equals(format))
 					source.setSrcFormat(DataFormat.rest);
+				else if (SQS.equals(format))
+					source.setSrcFormat(DataFormat.sqs);
 
 			}
 			// if(rs.next()) //get final frame param is not needed for

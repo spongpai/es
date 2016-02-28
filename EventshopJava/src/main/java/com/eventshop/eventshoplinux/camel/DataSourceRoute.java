@@ -41,9 +41,11 @@ public class DataSourceRoute extends RouteBuilder {
                 .when(header("dsFormat").isEqualTo(DataSource.DataFormat.stream))
                     .to("direct:toTwitterSearchAndStreaming")
                 .when(header("dsFormat").isEqualTo(DataSource.DataFormat.file))
-                .to("direct:readFromFile")
+                    .to("direct:readFromFile")
                 .when(header("dsFormat").isEqualTo(DataSource.DataFormat.rest))
-                .to("direct:readFromRest")
+                    .to("direct:readFromRest")
+                .when(header("dsFormat").isEqualTo(DataSource.DataFormat.sqs))
+                    .to("direct:readFromSQS")
         ;
 
     }

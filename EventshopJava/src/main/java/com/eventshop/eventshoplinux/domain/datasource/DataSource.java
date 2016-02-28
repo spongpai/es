@@ -321,6 +321,6 @@ public class DataSource {
 	}
 
 	public enum DataFormat {
-		stream, visual, rest, file
+		stream, visual, rest, file, sqs
 	}
 }

@@ -150,6 +150,7 @@ public class Constant {
 	public static final String STREAM = "stream";
 	public static final String VISUAL = "visual";
 	public static final String REST = "rest";
+	public static final String SQS = "sqs";
 	public static final String CSV = "csv"; // not sure why we didnt have this
 	// -- sanjukta
 	public static final String WRAPPER_NAME = "wrapper_name";

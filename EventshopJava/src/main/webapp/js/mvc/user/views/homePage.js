@@ -117,7 +117,7 @@ define([
     
      $("#page").css("display","none");
      //this.$el.html(homePageTemplate);
-     var compiledTemplate = _.template(homePageTemplate,{UName: this.sessionModel.userName});
+     var compiledTemplate = _.template(homePageTemplate,{UName: this.sessionModel.userName, UId: this.sessionModel.id});
      this.$el.html(compiledTemplate);
      
      /*this.datasourceUpdate();*/
