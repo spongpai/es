@@ -104,7 +104,7 @@ public class DataFormatRoute extends RouteBuilder {
                             ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl);
                             List<Message> messages = sqs.receiveMessage(receiveMessageRequest).getMessages();
                             if(messages.size() > 0) {
-                                try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/tmp/ds" + ds.getSrcID() + ".txt", true)))) {
+                                try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter(Config.getProperty("tempDir") + "ds" + ds.getSrcID() + ".txt", true)))) {
                                     for (Message message : messages) {
                                         out.println(message.getBody());
                                         messagesBody.add(message.getBody());
@@ -154,7 +154,7 @@ public class DataFormatRoute extends RouteBuilder {
                         } else{
                             exchange.getOut().setHeader("sqsList", false);
                             LOGGER.info("no message from sws: ");
-                            exchange.getOut().setBody("");
+                            exchange.getOut().setBody("{}");
                         }
                     }
                 })

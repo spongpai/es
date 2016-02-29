@@ -582,49 +582,49 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          } else {
                                              LOGGER.info("geo_location is not found");
                                          }
-                                         // only store photo media
-                                         if (aMedia.has("media_type") && aMedia.has("media_source")) {
-                                             if (aMedia.get("media_type").getAsString().equalsIgnoreCase("photo")) {
-                                                 String photo_url = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
-                                                 sttWhat.append("\"media_source_photo\":{\"value\":\"" + photo_url + "\"}, ");
-                                                 if (aMedia.has("why")) {
-                                                     JsonArray why = aMedia.getAsJsonArray("why");
-                                                     if (why.size() > 0) {
-                                                         JsonObject whyObj = why.get(0).getAsJsonObject();
-                                                         if (whyObj.has("intent_used_synonym")) {
-                                                             sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_used_synonym_index")) {
-                                                             sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_index_in_category")) {
-                                                             sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_name")) {
-                                                             sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_category_name")) {
-                                                             sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_category_id")) {
-                                                             sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_emoji_id")) {
-                                                             sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\"}, ");
-                                                         }
-                                                         if (whyObj.has("intent_emoji_unicode")) {
-                                                             sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\"}, ");
-                                                         }
+
+                                         if (aMedia.has("media_source")) {
+                                             String mediaType = "", mediaUrl = "";
+                                             if(aMedia.has("media_type"))
+                                                 mediaType = "_" + aMedia.get("media_type").getAsString().toLowerCase();
+                                             if(aMedia.getAsJsonObject("media_source").has("default_src"))
+                                                 mediaUrl = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
+                                             sttWhat.append("\"media_source" + mediaType + "\":{\"value\":\"" + mediaUrl + "\"}, ");
+
+                                             if (aMedia.has("why")) {
+                                                 JsonArray why = aMedia.getAsJsonArray("why");
+                                                 if (why.size() > 0) {
+                                                     JsonObject whyObj = why.get(0).getAsJsonObject();
+                                                     if (whyObj.has("intent_used_synonym")) {
+                                                         sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_used_synonym_index")) {
+                                                         sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_index_in_category")) {
+                                                         sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_name")) {
+                                                         sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_category_name")) {
+                                                         sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_category_id")) {
+                                                         sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_emoji_id")) {
+                                                         sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\"}, ");
+                                                     }
+                                                     if (whyObj.has("intent_emoji_unicode")) {
+                                                         sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\"}, ");
                                                      }
                                                  }
-                                                 if (aMedia.has("caption")) {
-                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
-                                                 } else {
-                                                     sttWhat.append("\"caption\":{\"value\":\"\"},");
-                                                 }
-                                             } else if (aMedia.get("media_type").getAsString().equalsIgnoreCase("AUDIO")) {
-                                                 String audio_url = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
-                                                 sttWhat.append("\"media_source_audio\":{\"value\":\"" + audio_url + "\"}, ");
+                                             }
+                                             if (aMedia.has("caption")) {
+                                                 sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
+                                             } else {
+                                                 sttWhat.append("\"caption\":{\"value\":\"\"},");
                                              }
                                          }
                                      }
@@ -643,7 +643,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
 
                                      JsonObject stt = parser.parse(sttJsonStr).getAsJsonObject();
                                      // add raw_data
-                                     stt.addProperty("raw_data", input);
+                                     stt.addProperty("raw_data", mediaJSON.toString());
 
                                      // add ingestion timestamp
                                      Date dateVal = new Date();
