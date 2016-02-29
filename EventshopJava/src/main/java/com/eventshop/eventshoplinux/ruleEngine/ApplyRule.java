@@ -110,7 +110,7 @@ public class ApplyRule {
 
             String[] limitFields = rules.getExtractFields().split(",");
             BasicDBObjectBuilder queryFields = BasicDBObjectBuilder.start()
-                    .add("stt_id", 1).add("stt_when", 1).add("stt_where", 1);   // default fields
+                    .add("stt_id", 1).add("stt_when", 1).add("stt_where", 1).add("_id", 0);   // default fields
             for(String field: limitFields){
                 if(field != "")
                     queryFields.add(field,1);
