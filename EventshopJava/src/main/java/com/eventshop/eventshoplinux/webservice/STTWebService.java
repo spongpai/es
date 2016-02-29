@@ -35,7 +35,7 @@ public class STTWebService {
     {
         RuleDao ruleDao = new RuleDao();
         Rules rules = ruleDao.getRules(ruleid);
-        if(min != "null" && min != "" && max != "" && max != "null"){
+        if(!min.equalsIgnoreCase("null") && !min.isEmpty() && !max.equalsIgnoreCase("null") && !max.isEmpty()){
             Rule ruleWhere = new Rule();
             ruleWhere.setDataField("stt_where.point");
             ruleWhere.setRuleOperator("coordinates");
@@ -43,19 +43,19 @@ public class STTWebService {
             rules.addRule(ruleWhere);
         }
 
-        if(start != "" && start != "null" && end != "" && end != "null"){
+        if(!start.equalsIgnoreCase("null") && !start.isEmpty() && !end.equalsIgnoreCase("null") && !end.isEmpty()){
             Rule ruleWhen = new Rule();
             ruleWhen.setDataField("stt_when.datetime");
             ruleWhen.setRuleOperator("between");
             ruleWhen.setRuleParameters(start + "," + end);
             rules.addRule(ruleWhen);
-        } else if(start != "" && start != "null"){
+        } else if(!start.equalsIgnoreCase("null") && !start.isEmpty()){
             Rule ruleWhen = new Rule();
             ruleWhen.setDataField("stt_when.datetime");
             ruleWhen.setRuleOperator("after");
             ruleWhen.setRuleParameters(start);
             rules.addRule(ruleWhen);
-        } else if(end != "" && end != "null"){
+        } else if(!end.equalsIgnoreCase("null") && !end.isEmpty()){
             Rule ruleWhen = new Rule();
             ruleWhen.setDataField("stt_when.datetime");
             ruleWhen.setRuleOperator("before");
