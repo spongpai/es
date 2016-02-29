@@ -38,6 +38,7 @@ public class JsonRoute extends RouteBuilder {
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         exchange.getOut().setHeader("dataSource", ds);
 
+
                         JsonParser parser = new JsonParser();
                         JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue()).getAsJsonObject();
                         String dsType = jObj.get("datasource_type").getAsString();

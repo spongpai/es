@@ -32,19 +32,20 @@ public class CreateMongoQuery {
 //            System.out.println(st.nextElement());
 //        }
         StringTokenizer st;
-        Rule rule1 = new Rule("loc", "radius", "-117.37,33.19,2");
+        Rule rule1 = new Rule("stt_what.intent_used_synonym_index.value","equals","0");
+        //Rule rule1 = new Rule("loc", "radius", "-117.37,33.19,2");
 //        Rule rule1 = new Rule("loc", "coordinates", "-112.969727,32.249974,-114.257813,33.000325");
 //        Rule rule1 = new Rule("value", "=", "100");
 
-//        Rule rule2 = new Rule("value", ">", "100");
+        Rule rule2 = new Rule("stt_what.intent_index_in_category.value","equals","0");
 ////        Rule rule3 = new Rule("value", ">", "50");
 //
         ArrayList<Rule> ruleList = new ArrayList<>();
         ruleList.add(rule1);
-//        ruleList.add(rule2);
+        ruleList.add(rule2);
 //        ruleList.add(rule3);
 
-        Rules rules = new Rules(ruleList, "ds18", "loc");
+        Rules rules = new Rules(ruleList, "ds20", "stt_id,stt_when,");
 
 //        ObjectMapper objectMapper = new ObjectMapper();
 //        String result = objectMapper.writeValueAsString(rules);
@@ -81,7 +82,7 @@ public class CreateMongoQuery {
                     query.put(rule.getDataField()).regex(Pattern.compile(rule.getRuleParameters()));
                     break;
                 case "equals"://String
-                    query.put(rule.getDataField()).equals(rule.getRuleParameters());
+                    query.put(rule.getDataField()).is(rule.getRuleParameters());
                     break;
                 case "coordinates"://Location
                     st = new StringTokenizer(rule.getRuleParameters(), ",");
@@ -110,7 +111,7 @@ public class CreateMongoQuery {
 
         }
 
-        LOGGER.debug(query.toString());
+        LOGGER.info(query.get().toString());
 
 
         LOGGER.debug(""+collection.getCount());
@@ -120,7 +121,7 @@ public class CreateMongoQuery {
 
         DBCursor dbCursor = collection.find(query.get());
 //
-        LOGGER.debug("Size : " + dbCursor.size());
+        LOGGER.info("Size : " + dbCursor.size());
 
 
         while (dbCursor.hasNext()) {

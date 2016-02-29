@@ -8,6 +8,7 @@ import com.amazonaws.regions.Region;
 import com.amazonaws.regions.Regions;
 import com.amazonaws.services.sqs.AmazonSQS;
 import com.amazonaws.services.sqs.AmazonSQSClient;
+import com.amazonaws.services.sqs.model.DeleteMessageRequest;
 import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.eventshop.eventshoplinux.domain.datasource.DataSource;
@@ -63,10 +64,15 @@ public class DataFormatRoute extends RouteBuilder {
                     public void process(Exchange exchange) throws Exception {
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
+                        JsonParser parser = new JsonParser();
+                        JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue()).getAsJsonObject();
+                        String profile ="default";
+                        if(jObj.has("aws_profile"))
+                            profile = jObj.get("aws_profile").getAsString();
+                        //long wait = 300000L;    // wait for 5 mins and try again
+
                         AWSCredentials credentials = null;
                         try {
-                            //String profile = "siripen";
-                            String profile = "default";
                             credentials = new ProfileCredentialsProvider(profile).getCredentials();
                         } catch (Exception e) {
                             throw new AmazonClientException(
@@ -89,31 +95,67 @@ public class DataFormatRoute extends RouteBuilder {
                         //String filePath = ds.getUrl();
                         //URL url = new URL(filePath);
                         LOGGER.info("read from SQS");
-                        ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl);
-                        List<Message> messages = sqs.receiveMessage(receiveMessageRequest).getMessages();
                         //JsonArray messageArray = new JsonArray();
                         //JsonParser parser = new JsonParser();
-                        try(PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/tmp/"+queueUrl+".txt", true)))) {
-                            for (Message message : messages) {
-                                out.println(message.getBody());
-                                LOGGER.info("get message body" + message.getBody());
+
+                        boolean emptyQueye = false;
+                        List<String> messagesBody = new ArrayList<String>();
+                        while( (messagesBody.size() == 0) || !emptyQueye) {
+                            ReceiveMessageRequest receiveMessageRequest = new ReceiveMessageRequest(queueUrl);
+                            List<Message> messages = sqs.receiveMessage(receiveMessageRequest).getMessages();
+                            if(messages.size() > 0) {
+                                try (PrintWriter out = new PrintWriter(new BufferedWriter(new FileWriter("/tmp/ds" + ds.getSrcID() + ".txt", true)))) {
+                                    for (Message message : messages) {
+                                        out.println(message.getBody());
+                                        messagesBody.add(message.getBody());
+                                        //LOGGER.info("get message body" + message.getBody());
+                                        // delete message from queue after received and wrote to file
+                                        String messageReceiptHandle = message.getReceiptHandle();
+                                        sqs.deleteMessage(new DeleteMessageRequest(queueUrl, messageReceiptHandle));
+
+                                    }
+                                } catch (AmazonServiceException ase) {
+                                    System.out.println("Caught an AmazonServiceException, which means your request made it " +
+                                            "to Amazon SQS, but was rejected with an error response for some reason.");
+                                    System.out.println("Error Message:    " + ase.getMessage());
+                                    System.out.println("HTTP Status Code: " + ase.getStatusCode());
+                                    System.out.println("AWS Error Code:   " + ase.getErrorCode());
+                                    System.out.println("Error Type:       " + ase.getErrorType());
+                                    System.out.println("Request ID:       " + ase.getRequestId());
+                                } catch (AmazonClientException ace) {
+                                    System.out.println("Caught an AmazonClientException, which means the client encountered " +
+                                            "a serious internal problem while trying to communicate with SQS, such as not " +
+                                            "being able to access the network.");
+                                    System.out.println("Error Message: " + ace.getMessage());
+                                }
+                            } else{
+                                emptyQueye = true;
+                                if(messagesBody.size() == 0) {
+                                    LOGGER.info("seems to be no message in queue");
+                                    break;
+                                    //Thread.sleep(300000);   // sleep for 5 minutes before trying again
+                                } else{
+                                    LOGGER.info("seems to be no more message in the queue, let populate messages we have so far into kafka");
+                                    break;
+                                }
                             }
-                        }catch (AmazonServiceException ase) {
-                            System.out.println("Caught an AmazonServiceException, which means your request made it " +
-                                    "to Amazon SQS, but was rejected with an error response for some reason.");
-                            System.out.println("Error Message:    " + ase.getMessage());
-                            System.out.println("HTTP Status Code: " + ase.getStatusCode());
-                            System.out.println("AWS Error Code:   " + ase.getErrorCode());
-                            System.out.println("Error Type:       " + ase.getErrorType());
-                            System.out.println("Request ID:       " + ase.getRequestId());
-                        } catch (AmazonClientException ace) {
-                            System.out.println("Caught an AmazonClientException, which means the client encountered " +
-                                    "a serious internal problem while trying to communicate with SQS, such as not " +
-                                    "being able to access the network.");
-                            System.out.println("Error Message: " + ace.getMessage());
                         }
 
-                        exchange.getOut().setBody(messages);
+                        if(messagesBody.size() == 1){
+                            exchange.getOut().setHeader("sqsList", false);
+                            LOGGER.info("send one message from sws: ");// + messagesBody.get(0));
+                            exchange.getOut().setBody(messagesBody.get(0));
+
+                        } else if(messagesBody.size() > 1){
+                            exchange.getOut().setHeader("sqsList", true);
+                            String joined = "[" + String.join(",", messagesBody) + "]";
+                            LOGGER.info("send list of messages from sqs: " + joined);
+                            exchange.getOut().setBody(joined);
+                        } else{
+                            exchange.getOut().setHeader("sqsList", false);
+                            LOGGER.info("no message from sws: ");
+                            exchange.getOut().setBody("");
+                        }
                     }
                 })
                 .to("direct:dataType");

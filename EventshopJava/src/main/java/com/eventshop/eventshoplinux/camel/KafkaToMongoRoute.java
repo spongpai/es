@@ -521,7 +521,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
 
                                  DataSource dataSource = DataCache.registeredDataSources.get(ds);
                                  String input = exchange.getIn().getBody(String.class);
-                                 LOGGER.info("inputData: " + input);
+                                 //LOGGER.info("inputData: " + input);
                                  JsonParser parser = new JsonParser();
 
                                  // validate jsonelement
@@ -532,27 +532,27 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                  } else if(inputJson.isJsonArray()){
                                      inputJsonArray = inputJson.getAsJsonArray();
                                  }
-
+                                 LOGGER.info("number of input elements: " + inputJsonArray.size());
                                  for(int x  = 0; x< inputJsonArray.size(); x++) {
                                      //JsonObject mediaJSON = parser.parse(input.toString()).getAsJsonObject();
                                      JsonElement mediaElement= inputJsonArray.get(x);
 
                                      if(!mediaElement.isJsonObject()){
+                                         LOGGER.info("this object is not a JsonObject, ignore it \n" + mediaElement.toString());
                                          continue;  // ignore this element, and continue to the next iteration
                                      }
                                      JsonObject mediaJSON = mediaElement.getAsJsonObject();
                                      JsonArray mediaList = mediaJSON.getAsJsonArray("media");
-                                     LOGGER.info("number of media: " + mediaList.size());
+                                     LOGGER.info("processing on element ["+(x+1)+"], number of media: " + mediaList.size());
 
                                      DateTime minStartTime = new DateTime(System.currentTimeMillis());
                                      double latitude = 999;
                                      double longitude = 999;
                                      StringBuilder sttWhat = new StringBuilder();
-                                     sttWhat.append("{");
 
                                      for (int i = 0; i < mediaList.size(); i++) {
                                          JsonObject aMedia = mediaList.get(i).getAsJsonObject();
-                                         LOGGER.info(i + ":" + aMedia.toString());
+                                         //LOGGER.info(i + ":" + aMedia.toString());
                                          DateTime startTime = null;
                                          if (aMedia.has("when")) {
                                              String start = aMedia.get("when").getAsJsonObject().get("start_time").getAsString();
@@ -586,53 +586,60 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          if (aMedia.has("media_type") && aMedia.has("media_source")) {
                                              if (aMedia.get("media_type").getAsString().equalsIgnoreCase("photo")) {
                                                  String photo_url = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
-                                                 sttWhat.append("\"media_source\":{\"value\":\"" + photo_url + "\",\"uncertainty\":0}, ");
+                                                 sttWhat.append("\"media_source_photo\":{\"value\":\"" + photo_url + "\"}, ");
                                                  if (aMedia.has("why")) {
                                                      JsonArray why = aMedia.getAsJsonArray("why");
                                                      if (why.size() > 0) {
                                                          JsonObject whyObj = why.get(0).getAsJsonObject();
                                                          if (whyObj.has("intent_used_synonym")) {
-                                                             sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_used_synonym_index")) {
-                                                             sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_index_in_category")) {
-                                                             sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_name")) {
-                                                             sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_category_name")) {
-                                                             sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_category_id")) {
-                                                             sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_emoji_id")) {
-                                                             sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\"}, ");
                                                          }
                                                          if (whyObj.has("intent_emoji_unicode")) {
-                                                             sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\",\"uncertainty\":0}, ");
+                                                             sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\"}, ");
                                                          }
                                                      }
                                                  }
                                                  if (aMedia.has("caption")) {
-                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\",\"uncertainty\":0}}");
+                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
                                                  } else {
-                                                     sttWhat.append("\"caption\":{\"value\":\"\",\"uncertainty\":0}}");
+                                                     sttWhat.append("\"caption\":{\"value\":\"\"},");
                                                  }
+                                             } else if (aMedia.get("media_type").getAsString().equalsIgnoreCase("AUDIO")) {
+                                                 String audio_url = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
+                                                 sttWhat.append("\"media_source_audio\":{\"value\":\"" + audio_url + "\"}, ");
                                              }
                                          }
                                      }
                                      String id = "";
                                      if (mediaJSON.has("id"))
                                          id = mediaJSON.get("id").getAsString();
-
+                                     String sttWhatStr = sttWhat.toString();
+                                     if(sttWhatStr.length() > 0)
+                                        sttWhatStr = "{ " + sttWhatStr.substring(0, sttWhatStr.lastIndexOf(",")) + "}";     // remove the last ","
+                                     else
+                                        sttWhatStr = "{}";
                                      String sttJsonStr = "{\"stt_id\":\"" + id + "\","
                                              + "\"stt_where\":{\"point\":[" + latitude + "," + longitude + "]},"
                                              + "\"stt_when\":{\"datetime\":" + minStartTime.getMillis() + "},"
-                                             + "\"stt_what\":" + sttWhat.toString() + "}";
+                                             + "\"stt_what\":" + sttWhatStr + ", \"stt_value\":1}";
 
                                      JsonObject stt = parser.parse(sttJsonStr).getAsJsonObject();
                                      // add raw_data
@@ -759,9 +766,15 @@ public class KafkaToMongoRoute extends RouteBuilder {
 
     public static void main(String[] args){
         String start = "2016-02-27T10:24:28.829Z";
-        DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-        DateTime startTime = dateFormat.parseDateTime(start);
+        List<String> a = new ArrayList<String>();
+        a.add(start);
+        a.add("bbb");
 
-        System.out.println(startTime.getMillis());
+
+
+        //DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        //DateTime startTime = dateFormat.parseDateTime(start);
+
+        //System.out.println(startTime.getMillis());
     }
     }

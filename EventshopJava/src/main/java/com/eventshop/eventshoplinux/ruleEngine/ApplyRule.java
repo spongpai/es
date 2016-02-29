@@ -57,6 +57,24 @@ public class ApplyRule {
                     case "equals"://String
                         query.put(rule.getDataField()).is(rule.getRuleParameters());
                         break;
+                    case "before":  //long
+                        query.put(rule.getDataField()).lessThanEquals(Long.valueOf(rule.getRuleParameters()));
+                        break;
+                    case "after":  //long
+                        query.put(rule.getDataField()).greaterThanEquals(Long.valueOf(rule.getRuleParameters()));
+                        break;
+                    case "between"://Number
+                        String[] params = rule.getRuleParameters().split(",");
+                        if(params[0].contains("."))
+                            query.put(rule.getDataField()).greaterThanEquals(Double.valueOf(params[0]));
+                        else
+                            query.put(rule.getDataField()).greaterThanEquals(Long.valueOf(params[0]));
+
+                        if(params[1].contains("."))
+                            query.put(rule.getDataField()).lessThanEquals(Double.valueOf(params[1]));
+                        else
+                            query.put(rule.getDataField()).lessThanEquals(Long.valueOf(params[1]));
+                        break;
                     case "coordinates"://Location
 //                        st = new StringTokenizer(rule.getRuleParameters(), ",");
 //                        query.put(rule.getDataField()).withinBox(
@@ -90,8 +108,17 @@ public class ApplyRule {
                 }
             }
 
+            String[] limitFields = rules.getExtractFields().split(",");
+            BasicDBObjectBuilder queryFields = BasicDBObjectBuilder.start()
+                    .add("stt_id", 1).add("stt_when", 1).add("stt_where", 1);   // default fields
+            for(String field: limitFields){
+                if(field != "")
+                    queryFields.add(field,1);
+            }
             //DBCursor dbCursor = collection.find(query.get());
-            DBCursor dbCursor = collection.find();
+            LOGGER.info("queries: " + query.get().toString() + ", fields: " + queryFields.get());
+
+            DBCursor dbCursor = collection.find(query.get(), queryFields.get());
             StringBuffer result = new StringBuffer();
 //            result.append("[");
 //            System.out.println("Mongo Route: Extract field");

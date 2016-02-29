@@ -89,4 +89,8 @@ public class Rules {
         this.userId = userId;
     }
 
+    public void addRule(Rule rule){
+        rules.add(rule);
+    }
+
 }

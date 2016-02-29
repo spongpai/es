@@ -34,28 +34,47 @@ public class MediaJsonRoute extends RouteBuilder {
                         System.out.println("media JSON: inside media json process" );
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
 
-
                         String body = exchange.getIn().getBody(String.class);
-                        LOGGER.info("tomediajsonpath: setbody: " + body.toString());
+                        //LOGGER.info("tomediajsonpath: setbody: " + body.toString());
                         exchange.getOut().setBody(body);
 
-                        /*
-                        // convert to json array before parsing
-
-                        JsonArray jsonElements = new JsonArray();
-                        List<String> element = new ArrayList();
-                        final JsonElement parse = parser.parse(body);
-                        jsonElements.add(parse);
-
-                        LOGGER.info("tomediajsonpath: setbody: " + jsonElements.toString());
-                        exchange.getOut().setBody(jsonElements);
-*/
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         exchange.getOut().setHeader("dataSource", ds);
                         JsonParser parser = new JsonParser();
-
                         JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue()).getAsJsonObject();
-                        String dsType = jObj.get("datasource_type").getAsString();
+
+                        //Check if it is a list and split the list before loading to kafka
+                        JsonElement isList1 = jObj.get("isList");
+                        Boolean isList = false;
+                        if (isList1 != null) {
+                            LOGGER.info("isList is true");
+                            isList = isList1.getAsBoolean();
+                        }
+                        Object sqsList = exchange.getIn().getHeader("sqsList"); // sqsList is overwirte isList
+                        if(sqsList != null){
+                            if((boolean)sqsList){
+                                LOGGER.info("sqsList is true");
+                                isList = true;
+                            } else{
+                                isList = false;
+                            }
+                        }
+
+                        String tokenizeElement = "";
+                        String rootElement = "";
+                        if (isList) {
+                            if (jObj.has("rootElement") && !jObj.get("rootElement").isJsonNull()) {
+                                rootElement = jObj.get("rootElement").getAsString();
+                            }
+                            if (jObj.has("tokenizeElement") && !jObj.get("tokenizeElement").isJsonNull()) {
+                                tokenizeElement = jObj.get("tokenizeElement").getAsString();
+                            }
+                            exchange.getOut().setHeader("isList", true);
+                            exchange.getOut().setHeader("tokenizeElement", tokenizeElement);
+                            exchange.getOut().setHeader("rootElement", rootElement);
+                        } else{
+                            exchange.getOut().setHeader("isList", false);
+                        }
                     }
                 })
                 .choice()
@@ -75,39 +94,13 @@ public class MediaJsonRoute extends RouteBuilder {
                         System.out.println("inside mediaJsonSplitList");
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         String body = exchange.getIn().getBody(String.class);
-                        String tokenizeElement = exchange.getIn().getHeader("tokenizeElement", String.class);
-                        String rootElement = exchange.getIn().getHeader("rootElement", String.class);
 
+                        JsonArray jsonElements = null;
                         JsonParser parser = new JsonParser();
                         final JsonElement parse = parser.parse(body);
-                        JsonArray jsonElements = null;
-                        if (parse.isJsonObject()) {
+                        jsonElements = parse.getAsJsonArray();
 
-                            JsonObject jsonObj = parse.getAsJsonObject();
-
-
-                            String root = "";
-                            if (!rootElement.isEmpty()) {
-//                            root = String.valueOf(JsonPath.read(body, ("$." + rootElement)));
-                                root = jsonObj.get(rootElement).getAsString();
-
-                            } else {
-                                root = body;
-                            }
-
-                            List<String> element = new ArrayList();
-
-                            if (!tokenizeElement.isEmpty()) {
-//                            element = JsonPath.read(root, ("$." + tokenizeElement));
-                                jsonElements = jsonObj.get(tokenizeElement).getAsJsonArray();
-
-                            }
-                        } else {
-                            jsonElements = parse.getAsJsonArray();
-
-                        }
-
-                        LOGGER.info("Successfully split the list. List has {} elements", jsonElements.size());
+                        LOGGER.info("Successfully split media json list. List has {} elements", jsonElements.size());
                         exchange.getOut().setBody(jsonElements);
 
                     }

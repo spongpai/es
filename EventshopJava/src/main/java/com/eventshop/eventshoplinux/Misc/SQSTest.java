@@ -108,9 +108,9 @@ public class SQSTest {
             }
             //System.exit(0);
             // Send a message
-            /*
+
             System.out.println("Sending a message to MyQueue.\n");
-            String filePath = "http://eventshop.ics.uci.edu/krumbsList.json";
+            String filePath = "http://eventshop.ics.uci.edu/krumbsList2.json";
             URL url = new URL(filePath);
             BufferedReader in = new BufferedReader(
                     new InputStreamReader(url.openStream()));
@@ -124,7 +124,7 @@ public class SQSTest {
             for(int i = 0; i < krumbsArr.size(); i++)
                 sqs.sendMessage(new SendMessageRequest(myQueueUrl, krumbsArr.get(i).getAsJsonObject().toString()));
             System.exit(0);
-            */
+
 
             // Receive messages
             System.out.println("Receiving messages from MyQueue.\n");
