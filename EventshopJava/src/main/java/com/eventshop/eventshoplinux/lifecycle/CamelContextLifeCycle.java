@@ -2,6 +2,7 @@ package com.eventshop.eventshoplinux.lifecycle;
 
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
 import com.mongodb.Mongo;
+import com.mongodb.MongoClient;
 import org.apache.camel.component.servletlistener.CamelContextLifecycle;
 import org.apache.camel.component.servletlistener.ServletCamelContext;
 import org.apache.camel.impl.JndiRegistry;
@@ -10,9 +11,13 @@ import org.apache.camel.impl.JndiRegistry;
  * Created by nandhiniv on 5/6/15.
  */
 public class CamelContextLifeCycle implements CamelContextLifecycle<JndiRegistry> {
+    MongoClient mongoClient = null;
     @Override
     public void beforeStart(ServletCamelContext servletCamelContext, JndiRegistry jndiRegistry) throws Exception {
-        jndiRegistry.bind("mongoBean", new Mongo(Config.getProperty("mongoHost")));
+        if(mongoClient == null)
+            mongoClient = new MongoClient(Config.getProperty("mongoHost"));
+
+        jndiRegistry.bind("mongoBean", mongoClient);
 
     }
 
@@ -28,7 +33,7 @@ public class CamelContextLifeCycle implements CamelContextLifecycle<JndiRegistry
 
     @Override
     public void afterStop(ServletCamelContext servletCamelContext, JndiRegistry jndiRegistry) throws Exception {
-
+        mongoClient.close();
     }
 
     @Override

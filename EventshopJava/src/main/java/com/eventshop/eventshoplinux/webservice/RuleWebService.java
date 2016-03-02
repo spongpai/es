@@ -93,4 +93,19 @@ public class RuleWebService {
 
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/getrules/{dsid}")
+    public List<Rules> getRules(@PathParam(value = "dsid") final String dsid) {
+        LOGGER.debug("geting all rules of this particular dsid " + dsid);
+
+        RuleDao dao = new RuleDao();
+
+        List<Rules> rule = dao.getAllRulesByDS(dsid);
+        LOGGER.debug(rule.toString());
+        return rule;
+    }
+
+
+
 }

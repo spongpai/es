@@ -47,7 +47,7 @@ public class AdminManagementDAO extends BaseDAO {
 
 		log.info("Inside getUserList()");
 
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		User userList = new User();
@@ -57,7 +57,9 @@ public class AdminManagementDAO extends BaseDAO {
 		// userQuery =
 		// (admin?"select A.* from tbl_User_Master A, tbl_role_master B where A.user_role_id=B.role_id and B.role_type='Admin' and A.user_email=? and A.user_password=? ":userQuery);
 		try {
-			ps = connection.prepareStatement(qrySql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(qrySql);
 			rs = ps.executeQuery();
 
 			while (rs.next()) {
@@ -75,6 +77,10 @@ public class AdminManagementDAO extends BaseDAO {
 
 		} catch (Exception e) {
 
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getUserList()");
 		return list;
@@ -125,11 +131,13 @@ public class AdminManagementDAO extends BaseDAO {
 
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-		Connection connection = connection();
+		//Connection connection = connection();
 		String qrySql = SLCT_DSMSTR_DSNAMES_QRY;
 		String dsNames = EMPTY_STRING;
 		try {
-			ps = connection.prepareStatement(qrySql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(qrySql);
 			ps.setInt(1, userId);
 			rs = ps.executeQuery();
 
@@ -145,7 +153,9 @@ public class AdminManagementDAO extends BaseDAO {
 
 			log.error(e.getMessage());
 		} finally {
-
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getUserDataSourceName()");
 		return dsNames;
@@ -159,10 +169,12 @@ public class AdminManagementDAO extends BaseDAO {
 		String qryNames = EMPTY_STRING;
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-		Connection connection = connection();
+		//Connection connection = connection();
 		String qryListSql = SLCT_QRYMSTR_QYNAMES_QRY;
 		try {
-			ps = connection.prepareStatement(qryListSql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(qryListSql);
 			ps.setInt(1, userId);
 			rs = ps.executeQuery();
 
@@ -178,7 +190,9 @@ public class AdminManagementDAO extends BaseDAO {
 
 			log.error(e.getMessage());
 		} finally {
-
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getUserQueryName()");
 		return qryNames;
@@ -190,13 +204,13 @@ public class AdminManagementDAO extends BaseDAO {
 	public String activateDeactivateUserList(List<String> userIds) {
 		log.info("Inside activateDeactivateUserList()");
 		PreparedStatement ps = null;
-		Connection connection = connection();
+		//Connection connection = connection();
 		String qrySql = UPDATE_USERMSTR_STATUS_QRY;
 		String result = NO_DATA;
 		int lastIndex = (userIds.size()) - 1;
 		String lastElement = userIds.get(lastIndex); // getting the status which
-														// is appended at the
-														// end of the List
+		// is appended at the
+		// end of the List
 
 		userIds.remove(lastIndex);
 		ListIterator listIterator = userIds.listIterator();
@@ -205,7 +219,9 @@ public class AdminManagementDAO extends BaseDAO {
 			int userId = Integer.parseInt((String) listIterator.next());
 
 			try {
-				ps = connection.prepareStatement(qrySql);
+				if(con.isClosed())
+					con = this.connection();
+				ps = con.prepareStatement(qrySql);
 				ps.setString(1, lastElement);
 				ps.setInt(2, userId);
 				int recordInsrtStatus = ps.executeUpdate();
@@ -213,6 +229,9 @@ public class AdminManagementDAO extends BaseDAO {
 
 			} catch (Exception e) {
 				result = DB_EXPT + e;
+			}finally {
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 			}
 		}
 		log.info("Completed activateDeactivateUserList()");
@@ -226,10 +245,12 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside updateUserdetails()");
 		PreparedStatement ps = null;
 		String queryExeStatus = "";
-		Connection connection = connection();
+		//Connection connection = connection();
 		String qrySql = UPDATE_USERMSTR_QRY;
 		try {
-			ps = connection.prepareStatement(qrySql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(qrySql);
 			ps.setString(1, user.getUserName());
 			ps.setString(2, user.getEmailId());
 			ps.setString(3, user.getAuthentication());
@@ -245,6 +266,9 @@ public class AdminManagementDAO extends BaseDAO {
 
 			log.error(e.getMessage());
 			queryExeStatus = DB_EXPT + e;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed updateUserdetails()");
 
@@ -254,14 +278,16 @@ public class AdminManagementDAO extends BaseDAO {
 	public List<DataSourceListElement> getDataSrcList() {
 		log.info("Inside getDataSrcList()");
 		List<DataSourceListElement> dsList = new ArrayList<DataSourceListElement>();
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		DataSourceListElement dsElement = null;
 		String tempDir = Config.getProperty(TEMPDIR);
 		String qrySql = SELECT_DSMSTR_DSRES_QRY;
 		try {
-			ps = connection.prepareStatement(qrySql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(qrySql);
 			rs = ps.executeQuery();
 
 			while (rs.next()) {
@@ -287,15 +313,19 @@ public class AdminManagementDAO extends BaseDAO {
 				dsElement.setBoundingbox(rs.getString(6));
 				dsElement.setAccess(rs.getString(7));
 				dsElement.setTimeWindow(rs.getLong(8)); // need to set
-														// timeWindow for
-														// registerServlet --
-														// sanjukta 06-08-2014
+				// timeWindow for
+				// registerServlet --
+				// sanjukta 06-08-2014
 				dsList.add(dsElement);
 			}
 
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getDataSrcList()");
 		return dsList;
@@ -306,7 +336,7 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside getDataSrcProfileForSelectedDS()");
 		List<DataSourceListElement> dsList = new ArrayList<DataSourceListElement>();
 		DataSourceListElement dsElement = null;
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		ListIterator listIterator = selectedDSIds.listIterator();
@@ -315,7 +345,9 @@ public class AdminManagementDAO extends BaseDAO {
 			String qrySql = SELECT_DS_QRY;
 
 			try {
-				ps = connection.prepareStatement(qrySql);
+				if(con.isClosed())
+					con = this.connection();
+				ps = con.prepareStatement(qrySql);
 				ps.setInt(1, userId);
 				rs = ps.executeQuery();
 
@@ -338,6 +370,10 @@ public class AdminManagementDAO extends BaseDAO {
 			} catch (Exception e) {
 
 				log.error(e.getMessage());
+			}finally {
+				try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 			}
 
 		}
@@ -349,14 +385,15 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside getDSAccessibilityList()");
 		// List<Object> dsMappedUserArray = null;
 		List<User> dsUsers = new ArrayList<User>();
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		String dsMappedUserSqlQry = SELECT_USERDS_QRY;
 
 		try {
-
-			ps = connection.prepareStatement(dsMappedUserSqlQry);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(dsMappedUserSqlQry);
 			ps.setString(1, dsMasterId);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -369,6 +406,10 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getDSAccessibilityList()");
 		return dsUsers;
@@ -378,14 +419,16 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside getDSAccessibilityList()");
 		// List<Object> dsMappedUserArray = null;
 		List<Integer> dsAssociatedUserId = new ArrayList<Integer>();
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		String dsMappedUserSqlQry = SELECT_USERDS_QRY;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 
-			ps = connection.prepareStatement(dsMappedUserSqlQry);
+			ps = con.prepareStatement(dsMappedUserSqlQry);
 			ps.setInt(1, dsMasterId);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -396,6 +439,10 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getDSAccessibilityList()");
 		return dsAssociatedUserId;
@@ -405,14 +452,15 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside getDSAccessibilityList()");
 		// List<Object> dsMappedUserArray = null;
 		List<User> dsUsers = new ArrayList<User>();
-		Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		String dsMappedUserSqlQry = SELECT_USERNOTINDS_QRY;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 
-			ps = connection.prepareStatement(dsMappedUserSqlQry);
+			ps = con.prepareStatement(dsMappedUserSqlQry);
 			ps.setString(1, userIds);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -425,6 +473,10 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getUsersNotInDS()");
 		return dsUsers;
@@ -432,26 +484,30 @@ public class AdminManagementDAO extends BaseDAO {
 
 	public String updateUserDataSource(List<String> selectedDSIds) {
 		log.info("Inside updateUserDataSource()");
-		Connection connection = connection();
 		PreparedStatement ps = null;
 		String result = FAILURE;
 		int lastIndex = (selectedDSIds.size()) - 1;
 		int dsId = Integer.parseInt(selectedDSIds.get(lastIndex)); // getting
-																	// the dsId
-																	// which is
-																	// appended
-																	// at the
-																	// end of
-																	// the List
+		// the dsId
+		// which is
+		// appended
+		// at the
+		// end of
+		// the List
 
 		String deleteQry = DEL_USERDS_QRY;
 		try {
-			ps = connection.prepareStatement(deleteQry);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(deleteQry);
 			ps.setInt(1, dsId);
 			ps.executeUpdate();
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		selectedDSIds.remove(lastIndex); // removing the last index
@@ -461,7 +517,9 @@ public class AdminManagementDAO extends BaseDAO {
 			String qrySql = INSERT_USERDS_QRY;
 
 			try {
-				ps = connection.prepareStatement(qrySql);
+				if(con.isClosed())
+					con = this.connection();
+				ps = con.prepareStatement(qrySql);
 				ps.setInt(1, userId);
 				ps.setInt(2, dsId);
 				int recordInsrtStatus = ps.executeUpdate();
@@ -470,6 +528,9 @@ public class AdminManagementDAO extends BaseDAO {
 			} catch (Exception e) {
 
 				log.error(e.getMessage());
+			} finally {
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 			}
 
 		}
@@ -479,7 +540,7 @@ public class AdminManagementDAO extends BaseDAO {
 
 	public String deleteDS(List<String> dsIds) {
 		log.info("Inside deleteDS()");
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		String result = FAILURE;
 		ListIterator listIterator = dsIds.listIterator();
@@ -492,7 +553,9 @@ public class AdminManagementDAO extends BaseDAO {
 					dsId);
 			if (statusDSRes.equals(SUCCESS) && statusWrap.equals(SUCCESS)) {
 				try {
-					ps = connection.prepareStatement(sqlQry);
+					if(con.isClosed())
+						con = this.connection();
+					ps = con.prepareStatement(sqlQry);
 					ps.setInt(1, dsId);
 					int recordInsrtStatus = ps.executeUpdate();
 					result = (recordInsrtStatus > 0 ? SUCCESS : result);
@@ -500,6 +563,9 @@ public class AdminManagementDAO extends BaseDAO {
 				} catch (Exception e) {
 
 					log.error(e.getMessage());
+				} finally {
+					try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+					try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 				}
 			}
 
@@ -510,13 +576,15 @@ public class AdminManagementDAO extends BaseDAO {
 
 	public String deleteReferences(String tablName, String colName, int id) {
 		log.info("Inside deleteReferences()");
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		String result = FAILURE;
 		String sqlReferenceQry = DEL + tablName + WHERE + colName + PARMID;
 		// "DELETE FROM "+tablName+" WHERE "+colName+"=?";
 		try {
-			ps = connection.prepareStatement(sqlReferenceQry);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(sqlReferenceQry);
 			ps.setInt(1, id);
 			int recordInsrtStatus = ps.executeUpdate();
 			result = (recordInsrtStatus > 0 ? SUCCESS : result);
@@ -524,6 +592,9 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed deleteReferences()");
 		return result;
@@ -533,13 +604,15 @@ public class AdminManagementDAO extends BaseDAO {
 		log.info("Inside getQueryList()");
 		Query qryElements = null;
 		List<Query> qryList = new ArrayList<Query>();
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		String statusControl = CONTROLFLAG; // Running
 		String sqlQry = SELECT_QRYMSTR_ADMIN_QRY;
 		try {
-			ps = connection.prepareStatement(sqlQry);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(sqlQry);
 			rs = ps.executeQuery();
 
 			while (rs.next()) {
@@ -559,6 +632,10 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getQueryList()");
 		return qryList;
@@ -569,7 +646,7 @@ public class AdminManagementDAO extends BaseDAO {
 	 */
 	public String deleteQueryList(List<String> queryIds) {
 		log.info("Inside deleteQueryList()");
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		String result = FAILURE;
 		ListIterator listIterator = queryIds.listIterator();
@@ -579,7 +656,9 @@ public class AdminManagementDAO extends BaseDAO {
 			deleteReferences(QRDS_TABLE_NAME, QRDS_COL_NAME, qryId);
 			deleteReferences(QRMS_TABLE_NAME, QRMS_COL_NAME, qryId);
 			try {
-				ps = connection.prepareStatement(sqlQry);
+				if(con.isClosed())
+					con = this.connection();
+				ps = con.prepareStatement(sqlQry);
 				ps.setInt(1, qryId);
 				int recordInsrtStatus = ps.executeUpdate();
 				result = (recordInsrtStatus > 0 ? SUCCESS : result);
@@ -587,6 +666,9 @@ public class AdminManagementDAO extends BaseDAO {
 			} catch (Exception e) {
 
 				log.error(e.getMessage());
+			} finally {
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 			}
 		}
 		log.info("Completed deleteQueryList()");
@@ -595,7 +677,7 @@ public class AdminManagementDAO extends BaseDAO {
 
 	public List<DataSource> getDatasource(List<String> selectedDSIds) {
 		log.info("Inside getDatasource()");
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet res = null;
 		DataSource dsrc = null;
@@ -607,7 +689,9 @@ public class AdminManagementDAO extends BaseDAO {
 			int dsId = Integer.parseInt((String) listIterator.next());
 			String[] bag_of_words = null;
 			try {
-				ps = connection.prepareStatement(SLT_DSMSTR_RUN_QRY);
+				if(con.isClosed())
+					con = this.connection();
+				ps = con.prepareStatement(SLT_DSMSTR_RUN_QRY);
 				ps.setInt(1, dsId);
 				res = ps.executeQuery();
 				// SLT_DSMSTR_RUN_QRY =
@@ -653,7 +737,7 @@ public class AdminManagementDAO extends BaseDAO {
 							}
 						} catch (Exception e) {
 							LOGGER.info("visual_trans_mat does not exist"
-											+ e);
+									+ e);
 						}
 						try {
 							if (is != null) {
@@ -681,6 +765,9 @@ public class AdminManagementDAO extends BaseDAO {
 			} catch (Exception e) {
 
 				log.error(e.getMessage());
+			} finally {
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 			}
 		}
 		log.info("Completed getDatasource()");
@@ -691,13 +778,15 @@ public class AdminManagementDAO extends BaseDAO {
 		// FrameParameters fp = new FrameParameters(timeWindow, syncAtMilliSec,
 		// latUnit,longUnit, swLat,swLong , neLat, neLong);
 		log.info("Inside getFrameParameterDS()");
-		Connection connection = connection();
+		//Connection connection = connection();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
 		FrameParameters frmParmObj = new FrameParameters();
 		String[] boundingBox = null;
 		try {
-			ps = connection.prepareStatement(SLT_DSRES_RUN_QRY);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(SLT_DSRES_RUN_QRY);
 			ps.setInt(1, dsId);
 			rs = ps.executeQuery();
 			while (rs.next()) {
@@ -715,6 +804,10 @@ public class AdminManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getFrameParameterDS()");
 		return frmParmObj;

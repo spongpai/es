@@ -27,6 +27,7 @@ public class ApplyRule {
         try {
             mongoConn = new Mongo(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
             DB mongoDb = mongoConn.getDB("events");
+            LOGGER.info("in apply rule: get source id ["+rules.getRuleID()+"]: " + rules.getSource());
             DBCollection collection = mongoDb.getCollection(rules.getSource());
 
 
@@ -110,7 +111,7 @@ public class ApplyRule {
 
             String[] limitFields = rules.getExtractFields().split(",");
             BasicDBObjectBuilder queryFields = BasicDBObjectBuilder.start()
-                    .add("stt_id", 1).add("stt_when", 1).add("stt_where", 1).add("_id", 0);   // default fields
+                    .add("stt_id", 1).add("stt_when", 1).add("stt_where", 1).add("stt_value",1).add("_id", 0);   // default fields
             for(String field: limitFields){
                 if(field != "")
                     queryFields.add(field,1);
@@ -141,7 +142,7 @@ public class ApplyRule {
 //                    result.append(",");
 //                }
 //
-               //result.append(next.toString());
+                //result.append(next.toString());
                 LOGGER.debug("DB LINE: " + next.toString());
                 result.append(next);
                 if (dbCursor.hasNext()) {
@@ -156,6 +157,8 @@ public class ApplyRule {
         } catch (UnknownHostException e) {
             e.printStackTrace();
             return null;
+        } finally{
+            mongoConn.close();
         }
 
     }

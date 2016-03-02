@@ -37,14 +37,18 @@ public class RuleDao extends BaseDAO {
         RuleDao rd = new RuleDao();
         User user = new User();
         user.setId(78);
-    rd.getAllRules(user);
+        rd.getAllRules(user);
     }
 
     public int registerRule(Rules rules) {
         int key = 0;
 
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(INSERT_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(INSERT_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, rules.getRuleName());
             ps.setString(2, rules.getSource());
             JsonArray ruleArray = new JsonArray();
@@ -60,7 +64,7 @@ public class RuleDao extends BaseDAO {
             ps.setString(4, rules.getExtractFields());
             ps.setInt(5,rules.getUserId());
             ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
+            rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 // Retrieve the auto generated key(s).
                 key = rs.getInt(1);
@@ -70,7 +74,12 @@ public class RuleDao extends BaseDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return 0;
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
     }
 
     public int registerDefaultRule(DataSource ds) {
@@ -84,8 +93,12 @@ public class RuleDao extends BaseDAO {
 
         //Sample Rule Insert {"source":"ds42","extractFields":"loc,theme,value,timestamp,","rules":[{"dataField":"loc","ruleOperator":"coordinates","ruleParameters":"33,33,33,33"}]}
 
-        try{
-            PreparedStatement ps = con.prepareStatement(INSERT_DEFAULT_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(INSERT_DEFAULT_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1,ds.getSrcID()+"_"+rules.getRuleName());
             String ruleQuery="{\"rules\":[{\"ruleOperator\":\"coordinates\",\"dataField\":\"loc\",\"ruleParameters\":\""+ds.getInitParam().getSwLat()+","+ds.getInitParam().getSwLong()+","+ds.getInitParam().getNeLat()+","+ds.getInitParam().getNeLong()+"\"}]}";
 
@@ -94,7 +107,7 @@ public class RuleDao extends BaseDAO {
             ps.setString(4, rules.getExtractFields());
             ps.setInt(5, rules.getUserId());
             ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
+            rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 // Retrieve the auto generated key(s).
                 key = rs.getInt(1);
@@ -102,16 +115,23 @@ public class RuleDao extends BaseDAO {
 
         }catch(Exception ex){
             ex.printStackTrace();
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
 
         return key;
     }
 
     public List<DSRuleElement> getDSRules(User user){
+        List<DSRuleElement> ruleElements = new ArrayList<DSRuleElement>();
         PreparedStatement ps = null;
         ResultSet rs = null;
-        List<DSRuleElement> ruleElements = new ArrayList<DSRuleElement>();
         try {
+            if(con.isClosed())
+                con = this.connection();
             con.prepareStatement(SELECT_RULE_DS_QRY);
             ps.setInt(1,user.getId());
             rs=ps.executeQuery();
@@ -124,19 +144,25 @@ public class RuleDao extends BaseDAO {
                 ruleElements.add(dsRuleElement);
             }
             return ruleElements;
-        } catch (SQLException e) {
+        } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
         return null;
     }
 
     public Rules getRules(int ruleId) {
 
+        Rules rules = new Rules();
         PreparedStatement ps = null;
         ResultSet rs = null;
-        Rules rules = new Rules();
-
         try {
+            if(con.isClosed())
+                con = this.connection();
             ps = con.prepareStatement(SELECT_RULE_QRY);
             ps.setInt(1, ruleId);
             rs = ps.executeQuery();
@@ -183,8 +209,11 @@ public class RuleDao extends BaseDAO {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
         return rules;
 
     }
@@ -192,8 +221,12 @@ public class RuleDao extends BaseDAO {
     public int updateRule(Rules rules, int ruleID) {
         int key = 0;
 
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(UPDATE_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(UPDATE_RULE_QRY, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, rules.getRuleName());
             ps.setString(2, rules.getSource());
             JsonArray ruleArray = new JsonArray();
@@ -209,7 +242,7 @@ public class RuleDao extends BaseDAO {
             ps.setString(4, rules.getExtractFields());
             ps.setInt(5, ruleID);
             ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
+            rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 // Retrieve the auto generated key(s).
                 key = rs.getInt(1);
@@ -219,7 +252,12 @@ public class RuleDao extends BaseDAO {
         } catch (SQLException e) {
             e.printStackTrace();
             return 0;
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
     }
 
 
@@ -231,9 +269,13 @@ public class RuleDao extends BaseDAO {
 //        ResultSet rs = null;
 
         List<RuleOperator> ruleOperatorList = new ArrayList<>();
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(SELECT_ENABLED_RULE_OPERATOR_QRY);
-            ResultSet rs = ps.executeQuery();
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(SELECT_ENABLED_RULE_OPERATOR_QRY);
+            rs = ps.executeQuery();
 
 
             while (rs.next()) {
@@ -250,7 +292,12 @@ public class RuleDao extends BaseDAO {
             return ruleOperatorList;
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
 
         return ruleOperatorList;
     }
@@ -278,6 +325,8 @@ public class RuleDao extends BaseDAO {
 
         List<RuleOperator> ruleOperatorList = new ArrayList<>();
         try {
+            if(con.isClosed())
+                con = this.connection();
             ps = con.prepareStatement(SELECT_ALL_RULE_ID_QRY);
             rs = ps.executeQuery();
 
@@ -292,8 +341,87 @@ public class RuleDao extends BaseDAO {
             return ruleIds;
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
         return null;
+    }
+
+    public List<Rules> getAllRulesByDS(String dsID){
+
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        List<Rules> rulesList = new ArrayList<>();
+
+        try {
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(SELECT_ALL_RULEs_OFDS_QRY);
+            ps.setString(1, dsID);
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Rules rules = new Rules();
+                int ruleID;
+                String ruleName;
+                String sourceID;
+                String ruleString;
+                String sourceFields;
+                int userId;
+
+                ruleID= rs.getInt(RULE_ID);
+                ruleName=rs.getString(RULE_NAME);
+                if(ruleName == null){
+                    ruleName="";
+                }
+                sourceID = rs.getString(SOURCE_ID);
+                ruleString = rs.getString(RULE_QUERIES);
+                if (ruleString==null){
+                    ruleString="";
+                }
+                sourceFields = rs.getString(SOURCE_FIELDS);
+                if(sourceFields==null){
+                    sourceFields="";
+                }
+                userId=rs.getInt(USER_ID);
+
+                rules.setRuleID(ruleID);
+                rules.setRuleName(ruleName);
+                rules.setUserId(userId);
+                rules.setSource(sourceID);
+                rules.setExtractFields(sourceFields);
+                List<Rule> ruless = new ArrayList<Rule>();
+                if(!ruleString.equals("")){
+                    JsonObject rulesObj = (new JsonParser()).parse(ruleString).getAsJsonObject();
+                    JsonArray rulesJson = rulesObj.get("rules").getAsJsonArray();
+                    for (int i = 0; i < rulesJson.size(); i++) {
+                        Rule rule = new Rule();
+                        JsonObject tempObj = rulesJson.get(i).getAsJsonObject();
+                        rule.setRuleOperator(tempObj.get("ruleOperator").getAsString());
+                        rule.setDataField(tempObj.get("dataField").getAsString());
+                        rule.setRuleParameters(tempObj.get("ruleParameters").getAsString());
+                        ruless.add(rule);
+                    }
+                }
+
+                rules.setRules(ruless);
+                rulesList.add(rules);
+
+            }
+            for(int i=0;i<rulesList.size();i++){
+                LOGGER.debug(rulesList.get(i).toString());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
+        }
+
+        return rulesList;
     }
 
     public List<Rules> getAllRules(User user) {
@@ -303,6 +431,8 @@ public class RuleDao extends BaseDAO {
         List<Rules> rulesList = new ArrayList<>();
 
         try {
+            if(con.isClosed())
+                con = this.connection();
             ps = con.prepareStatement(SELECT_ALL_RULE_QRY);
             ps.setInt(1,user.getId());
             rs = ps.executeQuery();
@@ -360,8 +490,11 @@ public class RuleDao extends BaseDAO {
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
+
         return rulesList;
 
     }

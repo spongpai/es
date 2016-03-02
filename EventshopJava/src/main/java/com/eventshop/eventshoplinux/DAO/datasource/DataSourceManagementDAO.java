@@ -68,8 +68,12 @@ public class DataSourceManagementDAO extends BaseDAO {
 		int updtFlg = ((ds.getSrcID() == null || ds.getSrcID() == "" || ds
 				.getSrcID().equals("0")) ? 0 : 1);
 		String dsResStr = (updtFlg == 0 ? "dsAdd" : "dsErr");
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
-			PreparedStatement ps = con.prepareStatement(dsmasterSql);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(dsmasterSql);
 			ps.setString(1, ds.getSrcName());
 			ps.setString(2, ds.getSrcTheme());
 			ps.setString(3, ds.getUrl());
@@ -88,7 +92,7 @@ public class DataSourceManagementDAO extends BaseDAO {
 				ps.setString(1, ds.getSrcTheme());
 				ps.setString(2, ds.getSrcName());
 				ps.setString(3, ds.getUserId());
-				ResultSet rs = ps.executeQuery();
+				rs = ps.executeQuery();
 				rs.next();
 				ds.setSrcID(rs.getString(1));
 			}
@@ -118,14 +122,16 @@ public class DataSourceManagementDAO extends BaseDAO {
 			result.setComment(new StringBuffer()
 					.append(ResultConfig.getProperty(dsAddErrComment))
 					.append(sqle.toString()).toString());
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
-
 		return result;
 	}
 
 	private void saveWrapper(DataSource ds) {
 
-		ResultSet rs = null;
 		String query = "";
 		String translationMatrix = null;
 		String colorMatrix = null;
@@ -137,12 +143,14 @@ public class DataSourceManagementDAO extends BaseDAO {
 			query = UPDATE_WRPR_QRY;
 		else
 			query = INSRT_WRPR_QRY;
+		PreparedStatement psWrpr = null;
 
 		try {
-
+			if(con.isClosed())
+				con = this.connection();
 			// PreparedStatement
 			// psWrpr=con.prepareStatement("insert into Wrapper(wrapper_name,wrapper_type,wrapper_key_value,bag_of_words,visual_tran_mat,visual_color_mat,visual_mask_mat,visual_ignore_since) values(?,?,?,?,?,?,?,?)");
-			PreparedStatement psWrpr = con.prepareStatement(query);
+			psWrpr = con.prepareStatement(query);
 			psWrpr.setString(1, ds.wrapper.getWrprName()); // wrapper_name
 			psWrpr.setString(2, (ds.wrapper.getWrprType() == null
 					|| ds.wrapper.getWrprType().equals("") ? WRAPPER_TYPE
@@ -216,7 +224,11 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			try { if (psWrpr != null) psWrpr.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
+
 
 	}
 
@@ -228,7 +240,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		String queryDatasourceResolution = INSERT_DSRES_QRY;
 
 		try {
-
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(queryDatasourceResolution);
 			// take dsmaster_id inserted above and insert at first place
 			ps.setInt(1, dsmaster_id);
@@ -250,6 +263,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 			log.error("not working " + e);
 			e.printStackTrace();
 
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return inserted;
 	}
@@ -264,6 +280,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		// System.out.println(" parameter details for update param.getTimeWindow()"+param.getTimeWindow()+
 		// " param.getLatUnit() "+param.getLatUnit()+" param.getLongUnit()"+param.getLongUnit()+" param.boundingBoxString()"+param.boundingBoxString());
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(queryDatasourceResolution);
 
 			ps.setLong(1, param.getTimeWindow());
@@ -291,6 +309,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.error(e.getMessage());
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return updated;
 	}
@@ -301,6 +322,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		ResultSet rs = null;
 		DataSource source = new DataSource();
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SELECT_DSMSTR_ALL_QRY);
 			ps.setInt(1, dsmaster_id);
 			rs = ps.executeQuery();
@@ -349,7 +372,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 			log.info("DatasourceManagementDao.getDatasource has issues " + e);
 
 		} finally {
-
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		log.info("getDataSource() method end");
@@ -366,6 +391,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		ResultSet rs = null;
 		DataSource source = new DataSource();
 		try {
+			if(con.isClosed())
+				con=this.connection();
 			ps = con.prepareStatement(SELECT_DSMSTR_ALL_QRY);
 			ps.setInt(1, dsmaster_id);
 			rs = ps.executeQuery();
@@ -415,6 +442,10 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 			log.info("DatasourceManagementDao.getDatasource has issues " + e);
 
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		if (source != null) {
@@ -428,12 +459,16 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 		List<String> listofWord = new ArrayList<String>();
 		Wrapper wrapper = new Wrapper();
+		PreparedStatement preparedStatementWrpr = null;
+		ResultSet rsWrpr = null;
 		try {
-			PreparedStatement preparedStatementWrpr = con
+			if(con.isClosed())
+				con = this.connection();
+			preparedStatementWrpr = con
 					.prepareStatement(SELECT_WRPR_QRY);
 			// System.out.println("SELECT_WRPR_QRY "+SELECT_WRPR_QRY);
 			preparedStatementWrpr.setInt(1, dsmaster_id);
-			ResultSet rsWrpr = preparedStatementWrpr.executeQuery();
+			rsWrpr = preparedStatementWrpr.executeQuery();
 			// SELECT
 			// wr.wrapper_id,wr.wrapper_name,wr.wrapper_type,wr.wrapper_key_value,wr.bag_of_words,
 			// wr.visual_tran_mat,wr.visual_color_mat,wr.visual_mask_mat,wr.visual_ignore_since
@@ -461,37 +496,37 @@ public class DataSourceManagementDAO extends BaseDAO {
 				// System.out.println(source.getSrcFormat());
 				if (source.getSrcFormat() != null) {
 
-				if (VISUAL.equalsIgnoreCase(source.getSrcFormat().toString())) {
-					InputStream is = rsWrpr.getBinaryStream(VISUAL_TRANS_MAT);
+					if (VISUAL.equalsIgnoreCase(source.getSrcFormat().toString())) {
+						InputStream is = rsWrpr.getBinaryStream(VISUAL_TRANS_MAT);
 
-					BufferedReader reader = new BufferedReader(
-							new InputStreamReader(is));
+						BufferedReader reader = new BufferedReader(
+								new InputStreamReader(is));
 
-					ConversionMatrix tranMat = null;
-					try {
-						tranMat = CommonUtil.parsefileToMatrix(reader);
-					} catch (Exception e) {
-						if (tranMat == null) {
-							tranMat = new ConversionMatrix();
-							tranMat.setMatrix(TrMat);
+						ConversionMatrix tranMat = null;
+						try {
+							tranMat = CommonUtil.parsefileToMatrix(reader);
+						} catch (Exception e) {
+							if (tranMat == null) {
+								tranMat = new ConversionMatrix();
+								tranMat.setMatrix(TrMat);
+							}
 						}
-					}
-					source.visualParam.setTranslationMatrix(tranMat);
+						source.visualParam.setTranslationMatrix(tranMat);
 
-					is = rsWrpr.getBinaryStream(VISUAL_COLR_MAT);
+						is = rsWrpr.getBinaryStream(VISUAL_COLR_MAT);
 
-					reader = new BufferedReader(new InputStreamReader(is));
+						reader = new BufferedReader(new InputStreamReader(is));
 
-					ConversionMatrix colorMat = null;
-					try {
-						colorMat = CommonUtil.parsefileToMatrix(reader);
-					} catch (Exception e) {
-						if (colorMat == null) {
-							colorMat = new ConversionMatrix();
-							colorMat.setMatrix(ColMat);
+						ConversionMatrix colorMat = null;
+						try {
+							colorMat = CommonUtil.parsefileToMatrix(reader);
+						} catch (Exception e) {
+							if (colorMat == null) {
+								colorMat = new ConversionMatrix();
+								colorMat.setMatrix(ColMat);
+							}
 						}
-					}
-					source.visualParam.setColorMatrix(colorMat);
+						source.visualParam.setColorMatrix(colorMat);
 
 					/*
 					 * source.visualParam.setTranMatPath(rs.getString(
@@ -499,23 +534,31 @@ public class DataSourceManagementDAO extends BaseDAO {
 					 * source.visualParam.setColorMatPath(rs
 					 * .getString("visual_color_mat"));
 					 */
-					// source.visualParam.setMaskPath(rs.getString("visual_mask_mat"));
-					source.visualParam.setIgnoreSinceNumber(rsWrpr.getInt(VISUAL_IGNOR_SINCE));
-				}
+						// source.visualParam.setMaskPath(rs.getString("visual_mask_mat"));
+						source.visualParam.setIgnoreSinceNumber(rsWrpr.getInt(VISUAL_IGNOR_SINCE));
+					}
 				}
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rsWrpr != null) rsWrpr.close(); } catch (Exception e) { /* ignored */ }
+			try { if (preparedStatementWrpr != null) preparedStatementWrpr.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		source.setWrapper(wrapper);
 		return source;
 	}
 
 	public void populateFrameParam(FrameParameters param, int dsmaster_id) {
+		PreparedStatement psFP = null;
+		ResultSet rsFP = null;
 		try {
-			PreparedStatement psFP = con.prepareStatement(SELECT_DSRES_QRY);
+			if(con.isClosed())
+				con = this.connection();
+			psFP = con.prepareStatement(SELECT_DSRES_QRY);
 			psFP.setInt(1, dsmaster_id);
-			ResultSet rsFP = psFP.executeQuery();
+			rsFP = psFP.executeQuery();
 
 			while (rsFP.next()) {
 				param.setTimeWindow(rsFP.getInt(TIME_WINDOW));
@@ -543,6 +586,10 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rsFP != null) rsFP.close(); } catch (Exception e) { /* ignored */ }
+			try { if (psFP != null) psFP.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 	}
 
@@ -558,6 +605,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 				+ userDSListSql;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(qrySql);
 			if (user.getRoleId() != 1) { // Normal User DSlist
 				ps.setInt(1, user.getId());
@@ -590,7 +639,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 		} finally {
-
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("end getDataSourceList by UserID");
 
@@ -609,6 +660,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 			String dsSql = SELECT_DS_QRY;
 
 			try {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(dsSql);
 				ps.setString(1, selectedDSIds[i]);
 				rs = ps.executeQuery();
@@ -651,7 +704,11 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 				log.error("error in query" + e.getMessage());
 			}
-
+			finally {
+				try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+				try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+				try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
+			}
 		}
 		log.info("Completed getDataSrcProfileForSelectedDS()");
 		return dsList;
@@ -665,6 +722,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		DataSource dsElement = null;
 		String qrySql = SELECT_DSMSTR_DSRES_QRY;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(qrySql);
 			rs = ps.executeQuery();
 
@@ -694,6 +753,10 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getDataSrcList()");
 		return dsList;
@@ -706,6 +769,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		ArrayList<String> dsIds = new ArrayList<String>();
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_DSID);
 			rs = ps.executeQuery();
 
@@ -718,6 +783,10 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		return dsIds;
@@ -731,6 +800,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		ArrayList<String> dsIds = new ArrayList<String>();
 
 		try {
+			if(con.isClosed())
+				con =  this.connection();
 			ps = con.prepareStatement(GET_ALL_DSID_ENABLED);
 			ps.setString(1, status);
 			rs = ps.executeQuery();
@@ -743,8 +814,11 @@ public class DataSourceManagementDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
-
 		return dsIds;
 	}
 
@@ -754,6 +828,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		StringTokenizer myvals = null;
 		List<String> bagOfWords = new ArrayList<String>();
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_BOW);
 			rs = ps.executeQuery();
 
@@ -769,6 +845,10 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 			LOGGER.info("DatasourceManagementDao.getAllBagOfWords has issues " + e);
 
+		} finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		LOGGER.debug("getAllBagOfWords() method end");
@@ -778,8 +858,11 @@ public class DataSourceManagementDAO extends BaseDAO {
 	private boolean checkFrameParam(int dsmaster_id) {
 		String query = CHECK_FRAMEPARAM;
 		boolean flag = false;
+		PreparedStatement ps = null;
 		try {
-			PreparedStatement ps = con.prepareStatement(query);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(query);
 			ps.setInt(1, dsmaster_id);
 			ResultSet rs = ps.executeQuery();
 
@@ -789,6 +872,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		}finally {
+			try { if(ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if(con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return flag;
 	}
@@ -816,14 +902,20 @@ public class DataSourceManagementDAO extends BaseDAO {
 	public boolean enableDataSource(int dsID) {
 
 		boolean status = true;
+		PreparedStatement ps = null;
 		try {
-			PreparedStatement ps = con.prepareStatement(ENABLE_DS);
+			if(con.isClosed())
+				con = this.connection();
+			ps = con.prepareStatement(ENABLE_DS);
 			ps.setInt(1, dsID);
 			ps.executeUpdate();
 		} catch (Exception e) {
 			log.error("Exception in enabling DataSource {}", e);
 			e.printStackTrace();
 			status = false;
+		}finally {
+			try { if(ps!= null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if(con!=null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 
@@ -833,6 +925,8 @@ public class DataSourceManagementDAO extends BaseDAO {
 		PreparedStatement ps = null;
 		boolean status = true;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(DISABLE_DS);
 			ps.setInt(1, dsID);
 			ps.executeUpdate();
@@ -840,6 +934,9 @@ public class DataSourceManagementDAO extends BaseDAO {
 			log.error("Exception in disabling DataSource {}", e);
 			e.printStackTrace();
 			status = false;
+		}finally {
+			try { if(ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if(con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 

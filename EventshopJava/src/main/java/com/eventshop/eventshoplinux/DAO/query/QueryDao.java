@@ -57,8 +57,12 @@ public class QueryDao extends BaseDAO {
                 }
             }
         }
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(INSERT_QUERY_MASTER_QRY, Statement.RETURN_GENERATED_KEYS);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(INSERT_QUERY_MASTER_QRY, Statement.RETURN_GENERATED_KEYS);
             ps.setInt(1, query.getQuery_creator_id());
             ps.setString(2, query.getQuery_name());
             ps.setString(3, query.getQuery_esql());
@@ -68,7 +72,7 @@ public class QueryDao extends BaseDAO {
             ps.setString(7, query.getBoundingbox());
             ps.setString(8, dataSourceList.toString());
             ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
+            rs = ps.getGeneratedKeys();
             if (rs.next()) {
                 // Retrieve the auto generated key(s).
                 key = rs.getInt(1);
@@ -77,16 +81,24 @@ public class QueryDao extends BaseDAO {
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
 
         return 0;
     }
 
     public boolean getQueryStatus(int query_id) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(QUERY_STAT_QRY);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(QUERY_STAT_QRY);
             ps.setInt(1, query_id);
-            ResultSet rs = ps.executeQuery();
+            rs = ps.executeQuery();
             if (rs.next()) {
                 String status = rs.getString(1);
                 if (status.equalsIgnoreCase("1"))
@@ -95,14 +107,21 @@ public class QueryDao extends BaseDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
+        finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
+        }
         return false;
     }
 
     public String deleteQuery(int query_id) {
         int deleted = 0;
+        PreparedStatement ps = null;
         try {
-            PreparedStatement ps = con.prepareStatement(DELETE_QUERY_MASTER_QRY);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(DELETE_QUERY_MASTER_QRY);
             ps.setInt(1, query_id);
             deleted = ps.executeUpdate();
 
@@ -111,17 +130,23 @@ public class QueryDao extends BaseDAO {
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
 
         return "Exception in deleting Query";
     }
 
     public List<Integer> getEnabledQueryIds() {
-
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
             List<Integer> enabledQIds = null;
-            PreparedStatement ps = con.prepareStatement("SELECT query_id FROM Query_Master WHERE query_status = 1");
-            ResultSet rs = ps.executeQuery();
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement("SELECT query_id FROM Query_Master WHERE query_status = 1");
+            rs = ps.executeQuery();
             while (rs.next()) {
 
                 if (!rs.getString("query_id").isEmpty()) {
@@ -133,14 +158,18 @@ public class QueryDao extends BaseDAO {
         } catch (SQLException e) {
             e.printStackTrace();
         }
-
+        finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
+        }
         return null;
     }
 
     public Emage getQueryEmage(int Qid) {
         Emage emage = new Emage();
         String qFilePath = Config.getProperty("tempDir") + "/queries/" + "Q" + Qid + ".json";
-		File tempFile = new File(qFilePath);
+        File tempFile = new File(qFilePath);
         if (tempFile.exists()) {
             ObjectMapper mapper = new ObjectMapper();
 

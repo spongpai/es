@@ -18,23 +18,28 @@ import static com.eventshop.eventshoplinux.constant.Constant.*;
 public class AlertDAO extends BaseDAO {
 
 	private final static Logger LOGGER = LoggerFactory.getLogger(AlertDAO.class);
-	
-	
-	
+
+
+
 	public boolean disableAllAlerts() {
 		PreparedStatement ps = null;
 		boolean status = true;
 		LOGGER.info("Disable all Alerts at startup");
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(DISABLE_ALL_ALERTS);
 			ps.executeUpdate();
 			LOGGER.info("Disabled all alerts successfully");
-			
+
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn in disabling all alerts: " + e);
 			e.printStackTrace();
 			status = false;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 	}
@@ -59,6 +64,8 @@ public class AlertDAO extends BaseDAO {
 		try {
 			LOGGER.debug("update is " + update);
 			if (update) {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(UPDATE_SOL_ALT_QRY);
 				ps.setString(1, alert.getAlertName());
 				ps.setInt(2, type);
@@ -78,6 +85,8 @@ public class AlertDAO extends BaseDAO {
 				ps.executeUpdate();
 
 			} else {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(INST_SOL_ALT_QRY);
 				ps.setString(1, alert.getAlertName());
 				ps.setInt(2, type);
@@ -97,15 +106,19 @@ public class AlertDAO extends BaseDAO {
 				ps.setDouble(16, alert.getRadius());
 				ps.executeUpdate();
 			}
+			queryStatus = true;
 
 		} catch (Exception e) {
 			LOGGER.info("exceptionnn e11" + e);
 			e.printStackTrace();
 			queryStatus = false;
-			return queryStatus;
+			//return queryStatus;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
-		queryStatus = true;
+		//queryStatus = true;
 		return queryStatus;
 	}
 
@@ -127,6 +140,8 @@ public class AlertDAO extends BaseDAO {
 
 		try {
 			if (type == 2) {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(INST_SINGLE_ALT_QRY_WITH_ENDPOINT);
 				ps.setString(1, alertObj.getAlertName());
 				ps.setInt(2, type);
@@ -142,7 +157,8 @@ public class AlertDAO extends BaseDAO {
 				ps.executeUpdate();
 			} else if (type == 1) {
 				//System.out.println("type = 1");
-
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(INST_SOL_ALT_QRY_WITH_ENDPOINT);
 				//System.out.println(alertObj.get("AlertId").toString() + " trying...");
 				ps.setString(1, alertObj.getAlertName());
@@ -162,16 +178,17 @@ public class AlertDAO extends BaseDAO {
 				// System.out.println("reghister query chilldd");
 				ps.executeUpdate();
 			}
-
+			queryStatus = true;
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn e11" + e);
 			e.printStackTrace();
 			queryStatus = false;
-			return queryStatus;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
-		queryStatus = true;
 		return queryStatus;
 	}
 
@@ -194,6 +211,8 @@ public class AlertDAO extends BaseDAO {
 
 		try {
 			if (type == 2) {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(INST_SINGLE_ALT_QRY_WITH_ENDPOINT_AND_BOUNDINGBOX);
 //				ps.setInt(1, aId);
 				ps.setString(1, alertObj.getAlertName());
@@ -212,7 +231,8 @@ public class AlertDAO extends BaseDAO {
 				ps.setDouble(14, alertObj.getRadius());
 				ps.executeUpdate();
 			} else if (type == 1) {
-
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(INST_SOL_ALT_QRY_WITH_ENDPOINT_AND_BOUNDINGBOX);
 				//System.out.println(alertObj.get("AlertId").toString() + " trying...");
 //				ps.setInt(1, aId);
@@ -237,20 +257,23 @@ public class AlertDAO extends BaseDAO {
 				// System.out.println("reghister query chilldd");
 				ps.executeUpdate();
 			}
-
+			queryStatus = true;
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("Error:" + e);
 			e.printStackTrace();
 			queryStatus = false;
-			return queryStatus;
+			//return queryStatus;
+		} finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
-		queryStatus = true;
+
 		return queryStatus;
 	}
 
-	
+
 	public int getMaxAlertId() {
 		// TODO Auto-generated method stub
 
@@ -259,10 +282,12 @@ public class AlertDAO extends BaseDAO {
 		int aId = 0;
 		LOGGER.debug("getting Max Alert id");
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_MAX_ALRT_ID);
 			rs = ps.executeQuery();
 			while(rs.next()) {
-			aId = rs.getInt(1);
+				aId = rs.getInt(1);
 			}
 //			aId = aId + 1;
 			LOGGER.debug("Alertid is " + aId);
@@ -271,6 +296,10 @@ public class AlertDAO extends BaseDAO {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn in enabling alert " + e);
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
 		return aId;
@@ -281,6 +310,8 @@ public class AlertDAO extends BaseDAO {
 		boolean status = true;
 		LOGGER.debug("enable Alert");
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(ENABLE_ALERT_QRY);
 			LOGGER.debug("Trying to enable Alert_Id " + alertId);
 			ps.setInt(1, alertId);
@@ -291,9 +322,12 @@ public class AlertDAO extends BaseDAO {
 			LOGGER.info("exceptionnn in enabling alert " + e);
 			e.printStackTrace();
 			status = false;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
-		
+
 	}
 
 	public boolean deactivateAlert(int alertId){
@@ -302,22 +336,27 @@ public class AlertDAO extends BaseDAO {
 		boolean queryStatus = false;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(DISABLE_ALERT_QRY);
 			ps.setInt(1, alertId);
 			ps.executeUpdate();
 			LOGGER.debug("Disabled alert " + alertId);
-
+			queryStatus = true;
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exception :" + e);
 			e.printStackTrace();
 			queryStatus = false;
-			return queryStatus;
+			//return queryStatus;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 
-		queryStatus = true;
+
 		return queryStatus;
-		
+
 	}
 
 	public HashMap<String, String> getAlertDetails(int alertId) {
@@ -325,8 +364,10 @@ public class AlertDAO extends BaseDAO {
 		HashMap<String, String> alertDetails = new HashMap<String, String>();
 		PreparedStatement ps = null;
 		ResultSet rs = null;
-		
+
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALERT_DTLS);
 			LOGGER.debug(" trying to get details");
 			ps.setInt(1, alertId);
@@ -354,9 +395,13 @@ public class AlertDAO extends BaseDAO {
 			// log.error(e.getMessage());
 			LOGGER.info("exception : " + e);
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
-		
-		
+
+
 		return alertDetails;
 	}
 
@@ -370,6 +415,8 @@ public class AlertDAO extends BaseDAO {
 		LOGGER.debug("checkQueryStatus");
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(QUERY_STAT_QRY);
 			LOGGER.debug("Trying to check query stat " + id);
 			ps.setInt(1, id);
@@ -382,11 +429,15 @@ public class AlertDAO extends BaseDAO {
 				}
 			}
 			return status;
-			
+
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn in checking q stat " + e);
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 	}
@@ -401,6 +452,8 @@ public class AlertDAO extends BaseDAO {
 		LOGGER.debug("checkDsStatus");
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(DS_STAT_QRY);
 			LOGGER.debug("Trying to check ds stat " + id);
 			ps.setInt(1, id);
@@ -412,28 +465,33 @@ public class AlertDAO extends BaseDAO {
 				}
 			}
 			return status;
-			
+
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn in checking ds stat " + e);
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 	}
-	
-	
+
+
 
 	public boolean isActive(int id) {
 		// TODO Auto-generated method stub
+		PreparedStatement ps = null;
+		ResultSet rs = null;
 		try {
 			LOGGER.debug("Checking for Alert Status: isActive(int id)");
-			PreparedStatement ps = null;
-			ResultSet rs = null;
 			int stat = 0;
 			boolean status = false;
 			LOGGER.debug("isAlertEnabled");
 			LOGGER.debug("Query: " + Alert_STAT_QRY);
-		
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(Alert_STAT_QRY);
 			LOGGER.debug("Trying to check Alert stat " + id);
 			ps.setInt(1, id);
@@ -447,14 +505,18 @@ public class AlertDAO extends BaseDAO {
 			}
 			LOGGER.debug("Status Returned: " + status);
 			return status;
-			
+
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exception in checking Alert stat " + e);
 			e.printStackTrace();
 			return false;
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
-		
+
 	}
 
 	public List<Alert> getAllAlertList(User user) {
@@ -468,6 +530,8 @@ public class AlertDAO extends BaseDAO {
 		Alert alert = null;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_ALERTS_FOR_USER);
 			LOGGER.debug("Trying to get alert details for userId " + user.getId());
 			ps.setInt(1, user.getId());
@@ -504,6 +568,10 @@ public class AlertDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("Completed getUserQuery()");
 		return alrtList;
@@ -519,6 +587,8 @@ public class AlertDAO extends BaseDAO {
 		Alert alert = null;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_ALERTS);
 			rs = ps.executeQuery();
 
@@ -541,6 +611,10 @@ public class AlertDAO extends BaseDAO {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("Completed getUserQuery()");
 		return alrtList;
@@ -556,6 +630,8 @@ public class AlertDAO extends BaseDAO {
 		Alert alert = null;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_ENABLED_ALERTS);
 			rs = ps.executeQuery();
 
@@ -579,6 +655,10 @@ public class AlertDAO extends BaseDAO {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("Completed getUserQuery()");
 		return alrtList;
@@ -594,6 +674,8 @@ public class AlertDAO extends BaseDAO {
 		Alert alert = null;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALL_ENABLED_ALERTS_FOR_ID);
 			ps.setString(1, id);
 			ps.setString(2, id);
@@ -619,6 +701,10 @@ public class AlertDAO extends BaseDAO {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("Completed getUserQuery()");
 		return alrtList;
@@ -630,6 +716,8 @@ public class AlertDAO extends BaseDAO {
 		ResultSet rs = null;
 		Alert alert = new Alert();
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(GET_ALERT_DTLS);
 			ps.setInt(1, alert_id);
 			rs = ps.executeQuery();
@@ -661,6 +749,10 @@ public class AlertDAO extends BaseDAO {
 		} catch (Exception e) {
 			e.printStackTrace();
 
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return alert;
 	}

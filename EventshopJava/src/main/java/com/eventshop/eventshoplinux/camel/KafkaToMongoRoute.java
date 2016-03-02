@@ -156,164 +156,164 @@ public class KafkaToMongoRoute extends RouteBuilder {
                 .completionSize(100)
                 .completionInterval(3000)
                 .process(new Processor() {
-                    @Override
-                    public void process(Exchange exchange) throws Exception {
-                        exchange.getOut().setHeaders(exchange.getIn().getHeaders());
-                        String ds = exchange.getIn().getHeader(KafkaConstants.TOPIC, String.class);
-                        ds = ds.replace("ds", "");
-                        DataSource dataSource = DataCache.registeredDataSources.get(ds);
+                             @Override
+                             public void process(Exchange exchange) throws Exception {
+                                 exchange.getOut().setHeaders(exchange.getIn().getHeaders());
+                                 String ds = exchange.getIn().getHeader(KafkaConstants.TOPIC, String.class);
+                                 ds = ds.replace("ds", "");
+                                 DataSource dataSource = DataCache.registeredDataSources.get(ds);
 //                        String body = exchange.getIn().getBody(String.class);
-                        List<DBObject> dbObjectList = new ArrayList<DBObject>();
-                        List<String> resultList = exchange.getIn().getBody(ArrayList.class);
-                        JsonParser parser = new JsonParser();
+                                 List<DBObject> dbObjectList = new ArrayList<DBObject>();
+                                 List<String> resultList = exchange.getIn().getBody(ArrayList.class);
+                                 JsonParser parser = new JsonParser();
 //                        JsonObject jObj = parser.parse(dataSource.getWrapper().getWrprKeyValue()).getAsJsonObject();
-                        Grok grok = Grok.create("src/main/resources/patterns");
+                                 Grok grok = Grok.create("src/main/resources/patterns");
 
 
-                        final Configuration configuration = Configuration.builder()
-                                .jsonProvider(new JacksonJsonNodeJsonProvider())
-                                .mappingProvider(new JacksonMappingProvider())
-                                .build();
+                                 final Configuration configuration = Configuration.builder()
+                                         .jsonProvider(new JacksonJsonNodeJsonProvider())
+                                         .mappingProvider(new JacksonMappingProvider())
+                                         .build();
 
-                        for (String input : resultList) {
-                            String syntax = dataSource.getSyntax();
-                            if (!syntax.startsWith("{")) {
-                                syntax = "{" + syntax + "}";
-                            }
-                            //Converts the syntax to a Map
-                            ConcurrentHashMap<String, Object> map = EventshopUtils.convertSyntaxToJson(syntax);
-                            JsonObject jObj = parser.parse(dataSource.getWrapper().getWrprKeyValue()).getAsJsonObject();
+                                 for (String input : resultList) {
+                                     String syntax = dataSource.getSyntax();
+                                     if (!syntax.startsWith("{")) {
+                                         syntax = "{" + syntax + "}";
+                                     }
+                                     //Converts the syntax to a Map
+                                     ConcurrentHashMap<String, Object> map = EventshopUtils.convertSyntaxToJson(syntax);
+                                     JsonObject jObj = parser.parse(dataSource.getWrapper().getWrprKeyValue()).getAsJsonObject();
 
-                            String line = input.replace("[", "");
-                            line = line.replace("]", "");
-                            String[] lineSplit = line.split(",");
-                            Date dateVal = null;
-                            Boolean hasDateTime = false;
-                            //Parse the map and check the corresponding index exists and update the syntax json to the document
-                            // going to be inserted in Mongo
-                            for (ConcurrentHashMap.Entry<String, Object> entry : map.entrySet()) {
-                                try {
-                                    String Key = entry.getKey().replace(".", "_");
-                                    String keyPath = Key + "_path";
-                                    String keyGrok = Key + "_grok";
-                                    if (String.valueOf(entry.getValue()).equalsIgnoreCase("DATETIME")) {
-                                        hasDateTime = true;
-                                        String value = "";
-                                        String dateTimeFormat = jObj.get(entry.getKey() + "_format").getAsString();
+                                     String line = input.replace("[", "");
+                                     line = line.replace("]", "");
+                                     String[] lineSplit = line.split(",");
+                                     Date dateVal = null;
+                                     Boolean hasDateTime = false;
+                                     //Parse the map and check the corresponding index exists and update the syntax json to the document
+                                     // going to be inserted in Mongo
+                                     for (ConcurrentHashMap.Entry<String, Object> entry : map.entrySet()) {
+                                         try {
+                                             String Key = entry.getKey().replace(".", "_");
+                                             String keyPath = Key + "_path";
+                                             String keyGrok = Key + "_grok";
+                                             if (String.valueOf(entry.getValue()).equalsIgnoreCase("DATETIME")) {
+                                                 hasDateTime = true;
+                                                 String value = "";
+                                                 String dateTimeFormat = jObj.get(entry.getKey() + "_format").getAsString();
 
-                                        if (jObj.has(keyPath)) {
-                                            final String path = jObj.get(keyPath).getAsString();
-                                            value = xpath(path).evaluate(getContext(), input);
+                                                 if (jObj.has(keyPath)) {
+                                                     final String path = jObj.get(keyPath).getAsString();
+                                                     value = xpath(path).evaluate(getContext(), input);
 
-                                            if (jObj.has(keyGrok)) {
-                                                String expression = jObj.get(keyGrok).getAsString();
-                                                grok.compile(expression);
-                                                Match match = grok.match(value);
-                                                match.captures();
-                                                LOGGER.debug("match is " + match.toJson(true));
-                                                JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
-                                                value = jsonObject.get(Key.replace(".", "_")).getAsString();
-                                            }
+                                                     if (jObj.has(keyGrok)) {
+                                                         String expression = jObj.get(keyGrok).getAsString();
+                                                         grok.compile(expression);
+                                                         Match match = grok.match(value);
+                                                         match.captures();
+                                                         LOGGER.debug("match is " + match.toJson(true));
+                                                         JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
+                                                         value = jsonObject.get(Key.replace(".", "_")).getAsString();
+                                                     }
 
-                                            value = value.trim();
-    //                                    value = value.replace("T", " ");
+                                                     value = value.trim();
+                                                     //                                    value = value.replace("T", " ");
 
-                                            SimpleDateFormat simpleDateFormat = null;
-                                            if (!dateTimeFormat.equalsIgnoreCase("Long")) {
-                                                simpleDateFormat = new SimpleDateFormat(dateTimeFormat);
-                                                dateVal = simpleDateFormat.parse(value);
-                                            } else {
-                                                dateVal = new Date(Long.valueOf(value));
-                                            }
-                                            JsonNode updatedJson
-                                                    = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), dateVal).json();
-                                            syntax = updatedJson.toString();
+                                                     SimpleDateFormat simpleDateFormat = null;
+                                                     if (!dateTimeFormat.equalsIgnoreCase("Long")) {
+                                                         simpleDateFormat = new SimpleDateFormat(dateTimeFormat);
+                                                         dateVal = simpleDateFormat.parse(value);
+                                                     } else {
+                                                         dateVal = new Date(Long.valueOf(value));
+                                                     }
+                                                     JsonNode updatedJson
+                                                             = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), dateVal).json();
+                                                     syntax = updatedJson.toString();
 
-                                        }
+                                                 }
 
-                                    } else if (String.valueOf(entry.getValue()).equalsIgnoreCase("NUMBER")) {
-                                        String value = "";
-                                        if (jObj.has(keyPath)) {
-                                            final String path = jObj.get(keyPath).getAsString();
-                                            value = xpath(path).evaluate(getContext(), input);
+                                             } else if (String.valueOf(entry.getValue()).equalsIgnoreCase("NUMBER")) {
+                                                 String value = "";
+                                                 if (jObj.has(keyPath)) {
+                                                     final String path = jObj.get(keyPath).getAsString();
+                                                     value = xpath(path).evaluate(getContext(), input);
 
-                                            if (jObj.has(keyGrok)) {
-                                                String expression = jObj.get(keyGrok).getAsString();
-                                                LOGGER.debug("expression:::::   " + expression);
-                                                grok.compile(expression);
+                                                     if (jObj.has(keyGrok)) {
+                                                         String expression = jObj.get(keyGrok).getAsString();
+                                                         LOGGER.debug("expression:::::   " + expression);
+                                                         grok.compile(expression);
 
-                                                Match match = grok.match(value);
-                                                match.captures();
-                                                LOGGER.debug("match is " + match.toJson(true));
-                                                JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
-                                                value = jsonObject.get(Key.replace(".", "_")).getAsString();
-                                            }
+                                                         Match match = grok.match(value);
+                                                         match.captures();
+                                                         LOGGER.debug("match is " + match.toJson(true));
+                                                         JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
+                                                         value = jsonObject.get(Key.replace(".", "_")).getAsString();
+                                                     }
 
-                                            value = value.trim();
-                                            LOGGER.debug("value:::::::  " + value);
-                                            Double dVal = Double.valueOf(value);
-                                            JsonNode updatedJson
-                                                    = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), dVal).json();
-                                            syntax = updatedJson.toString();
+                                                     value = value.trim();
+                                                     LOGGER.debug("value:::::::  " + value);
+                                                     Double dVal = Double.valueOf(value);
+                                                     JsonNode updatedJson
+                                                             = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), dVal).json();
+                                                     syntax = updatedJson.toString();
 
-                                        }
+                                                 }
 
-                                    } else {
-                                        String value = "";
-                                        if (jObj.has(keyPath)) {
-                                            final String path = jObj.get(keyPath).getAsString();
-                                            value = xpath(path).evaluate(getContext(), input);
+                                             } else {
+                                                 String value = "";
+                                                 if (jObj.has(keyPath)) {
+                                                     final String path = jObj.get(keyPath).getAsString();
+                                                     value = xpath(path).evaluate(getContext(), input);
 
-                                            if (jObj.has(keyGrok)) {
-                                                String expression = jObj.get(keyGrok).getAsString();
-                                                grok.compile(expression);
-                                                Match match = grok.match(value);
-                                                match.captures();
-                                                LOGGER.debug("match is " + match.toJson(true));
-                                                JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
-                                                value = jsonObject.get(Key.replace(".", "_")).getAsString();
-                                            }
+                                                     if (jObj.has(keyGrok)) {
+                                                         String expression = jObj.get(keyGrok).getAsString();
+                                                         grok.compile(expression);
+                                                         Match match = grok.match(value);
+                                                         match.captures();
+                                                         LOGGER.debug("match is " + match.toJson(true));
+                                                         JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
+                                                         value = jsonObject.get(Key.replace(".", "_")).getAsString();
+                                                     }
 
-                                            value = value.trim();
-                                            JsonNode updatedJson
-                                                    = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), value).json();
-                                            syntax = updatedJson.toString();
+                                                     value = value.trim();
+                                                     JsonNode updatedJson
+                                                             = JsonPath.using(configuration).parse(syntax).set("$." + entry.getKey(), value).json();
+                                                     syntax = updatedJson.toString();
 
-                                        }
+                                                 }
 
-                                    }
-                                    LOGGER.debug("syntax is : " + syntax);
-                                } catch (GrokException e) {
-                                    e.printStackTrace();
-                                } catch (JsonSyntaxException e) {
-                                    e.printStackTrace();
-                                } catch (ParseException e) {
-                                    e.printStackTrace();
-                                } catch (NumberFormatException e) {
-                                    e.printStackTrace();
-                                } catch (NullPointerException e) {
-                                    LOGGER.info("Exception occured when evaluating Grok because the pattern did not match.");
-                                    e.printStackTrace();
-                                }
+                                             }
+                                             LOGGER.debug("syntax is : " + syntax);
+                                         } catch (GrokException e) {
+                                             e.printStackTrace();
+                                         } catch (JsonSyntaxException e) {
+                                             e.printStackTrace();
+                                         } catch (ParseException e) {
+                                             e.printStackTrace();
+                                         } catch (NumberFormatException e) {
+                                             e.printStackTrace();
+                                         } catch (NullPointerException e) {
+                                             LOGGER.info("Exception occured when evaluating Grok because the pattern did not match.");
+                                             e.printStackTrace();
+                                         }
 
-                            }
+                                     }
 
-                            JsonObject asJsonObject = parser.parse(syntax).getAsJsonObject();
-                            asJsonObject.addProperty("raw_data", line);
-                            asJsonObject.addProperty("theme", dataSource.getSrcTheme());
-                            if (!hasDateTime) {
-                                dateVal = new Date();
-                                asJsonObject.addProperty("timestamp", dateVal.getTime());
-                            }
-                            DBObject dbObj = (DBObject) JSON.parse(asJsonObject.toString());
-                            //Add the document to the document list to update as a batch
-                            dbObjectList.add(dbObj);
-                        }
+                                     JsonObject asJsonObject = parser.parse(syntax).getAsJsonObject();
+                                     asJsonObject.addProperty("raw_data", line);
+                                     asJsonObject.addProperty("theme", dataSource.getSrcTheme());
+                                     if (!hasDateTime) {
+                                         dateVal = new Date();
+                                         asJsonObject.addProperty("timestamp", dateVal.getTime());
+                                     }
+                                     DBObject dbObj = (DBObject) JSON.parse(asJsonObject.toString());
+                                     //Add the document to the document list to update as a batch
+                                     dbObjectList.add(dbObj);
+                                 }
 
-                        String dsId = dataSource.getSrcID();
-                        String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
-                        exchange.getOut().setHeader("mPath", mongoPath);
-                        exchange.getOut().setBody(dbObjectList);
+                                 String dsId = dataSource.getSrcID();
+                                 String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
+                                 exchange.getOut().setHeader("mPath", mongoPath);
+                                 exchange.getOut().setBody(dbObjectList);
 
 
                              }
@@ -542,6 +542,10 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          continue;  // ignore this element, and continue to the next iteration
                                      }
                                      JsonObject mediaJSON = mediaElement.getAsJsonObject();
+                                     if(!mediaJSON.has("media")){
+                                         LOGGER.info("this object is not a media json format, ignore it \n" + mediaElement.toString());
+                                         continue;
+                                     }
                                      JsonArray mediaList = mediaJSON.getAsJsonArray("media");
                                      LOGGER.info("processing on element ["+(x+1)+"], number of media: " + mediaList.size());
 
@@ -554,77 +558,95 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          JsonObject aMedia = mediaList.get(i).getAsJsonObject();
                                          //LOGGER.info(i + ":" + aMedia.toString());
                                          DateTime startTime = null;
-                                         if (aMedia.has("when")) {
-                                             String start = aMedia.get("when").getAsJsonObject().get("start_time").getAsString();
-                                             if (start.contains("T")) {
-                                                 DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-                                                 startTime = dateFormat.parseDateTime(start);
+                                         try{
+                                             if (aMedia.has("when") && !aMedia.get("when").isJsonNull()) {
+                                                 String start = aMedia.get("when").getAsJsonObject().get("start_time").getAsString();
+                                                 if (start.contains("T")) {
+                                                     DateTimeFormatter dateFormat = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+                                                     startTime = dateFormat.parseDateTime(start);
 
+                                                 } else if(!start.isEmpty() && !start.equalsIgnoreCase("")){
+                                                     if (start.length() >= 13)    // you have millisecond (for data after 2001)
+                                                         startTime = new DateTime(Long.parseLong(start));
+                                                     else
+                                                         startTime = new DateTime(Long.parseLong(start) * 1000);
+                                                 }
+                                                 if (startTime != null && startTime.isBefore(minStartTime))
+                                                     minStartTime = startTime;
                                              } else {
-                                                 if (start.length() >= 13)    // you have millisecond (for data after 2001)
-                                                     startTime = new DateTime(Long.parseLong(start));
-                                                 else
-                                                     startTime = new DateTime(Long.parseLong(start) * 1000);
+                                                 LOGGER.info("start_time is not found");
                                              }
-                                             if (startTime != null && startTime.isBefore(minStartTime))
-                                                 minStartTime = startTime;
-                                         } else {
-                                             LOGGER.info("start_time is not found");
+                                         } catch (Exception e){
+                                             LOGGER.error(e.getMessage());
+                                         }
+                                         try{
+                                             if (aMedia.has("where") && !aMedia.get("where").isJsonNull()) {
+                                                 JsonObject where = aMedia.getAsJsonObject("where").getAsJsonObject("geo_location");
+                                                 if (where.has("latitude") && where.has("longitude")) {
+                                                     latitude = Double.parseDouble(where.get("latitude").getAsString());
+                                                     longitude = Double.parseDouble(where.get("longitude").getAsString());
+                                                 }
+                                                 LOGGER.info("geo_location: " + latitude + ", " + longitude);
+                                             } else {
+                                                 LOGGER.info("geo_location is not found");
+                                             }
+                                         } catch (Exception e){
+                                             LOGGER.error(e.getMessage());
                                          }
 
-                                         if (aMedia.has("where")) {
-                                             JsonObject where = aMedia.getAsJsonObject("where").getAsJsonObject("geo_location");
-                                             if (where.has("latitude") && where.has("longitude")) {
-                                                 latitude = Double.parseDouble(where.get("latitude").getAsString());
-                                                 longitude = Double.parseDouble(where.get("longitude").getAsString());
-                                             }
-                                             LOGGER.info("geo_location: " + latitude + ", " + longitude);
-                                         } else {
-                                             LOGGER.info("geo_location is not found");
-                                         }
-
-                                         if (aMedia.has("media_source")) {
+                                         if (aMedia.has("media_source") && !aMedia.get("media_source").isJsonNull()) {
                                              String mediaType = "", mediaUrl = "";
-                                             if(aMedia.has("media_type"))
+                                             if (aMedia.has("media_type"))
                                                  mediaType = "_" + aMedia.get("media_type").getAsString().toLowerCase();
-                                             if(aMedia.getAsJsonObject("media_source").has("default_src"))
+                                             if (aMedia.getAsJsonObject("media_source").has("default_src"))
                                                  mediaUrl = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
                                              sttWhat.append("\"media_source" + mediaType + "\":{\"value\":\"" + mediaUrl + "\"}, ");
-
-                                             if (aMedia.has("why")) {
-                                                 JsonArray why = aMedia.getAsJsonArray("why");
-                                                 if (why.size() > 0) {
-                                                     JsonObject whyObj = why.get(0).getAsJsonObject();
-                                                     if (whyObj.has("intent_used_synonym")) {
-                                                         sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_used_synonym_index")) {
-                                                         sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_index_in_category")) {
-                                                         sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_name")) {
-                                                         sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_category_name")) {
-                                                         sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_category_id")) {
-                                                         sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_emoji_id")) {
-                                                         sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\"}, ");
-                                                     }
-                                                     if (whyObj.has("intent_emoji_unicode")) {
-                                                         sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\"}, ");
+                                             try{
+                                                 if (aMedia.has("why")) {
+                                                     LOGGER.info("here is why: " + aMedia.get("why").toString());
+                                                     JsonElement whyy = aMedia.get("why");
+                                                     if (!whyy.isJsonNull() && whyy.isJsonArray()) {
+                                                         JsonArray why = whyy.getAsJsonArray();
+                                                         if (!why.isJsonNull() && why.size() > 0) {
+                                                             JsonObject whyObj = why.get(0).getAsJsonObject();
+                                                             if (whyObj.has("intent_used_synonym")) {
+                                                                 sttWhat.append("\"intent_used_synonym\":{\"value\":\"" + whyObj.get("intent_used_synonym").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_used_synonym_index")) {
+                                                                 sttWhat.append("\"intent_used_synonym_index\":{\"value\":\"" + whyObj.get("intent_used_synonym_index").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_index_in_category")) {
+                                                                 sttWhat.append("\"intent_index_in_category\":{\"value\":\"" + whyObj.get("intent_index_in_category").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_name")) {
+                                                                 sttWhat.append("\"intent_name\":{\"value\":\"" + whyObj.get("intent_name").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_category_name")) {
+                                                                 sttWhat.append("\"intent_category_name\":{\"value\":\"" + whyObj.get("intent_category_name").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_category_id")) {
+                                                                 sttWhat.append("\"intent_category_id\":{\"value\":\"" + whyObj.get("intent_category_id").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_emoji_id")) {
+                                                                 sttWhat.append("\"intent_emoji_id\":{\"value\":\"" + whyObj.get("intent_emoji_id").getAsString() + "\"}, ");
+                                                             }
+                                                             if (whyObj.has("intent_emoji_unicode")) {
+                                                                 sttWhat.append("\"intent_emoji_unicode\":{\"value\":\"" + whyObj.get("intent_emoji_unicode").getAsString() + "\"}, ");
+                                                             }
+                                                         }
                                                      }
                                                  }
+                                             } catch (Exception e){
+                                                 LOGGER.error(e.getMessage());
                                              }
-                                             if (aMedia.has("caption")) {
-                                                 sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
-                                             } else {
-                                                 sttWhat.append("\"caption\":{\"value\":\"\"},");
+                                             try {
+                                                 if (aMedia.has("caption")) {
+                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
+                                                 } else {
+                                                     sttWhat.append("\"caption\":{\"value\":\"\"},");
+                                                 }
+                                             } catch (Exception e){
+                                                 LOGGER.error(e.getMessage());
                                              }
                                          }
                                      }
@@ -633,9 +655,9 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          id = mediaJSON.get("id").getAsString();
                                      String sttWhatStr = sttWhat.toString();
                                      if(sttWhatStr.length() > 0)
-                                        sttWhatStr = "{ " + sttWhatStr.substring(0, sttWhatStr.lastIndexOf(",")) + "}";     // remove the last ","
+                                         sttWhatStr = "{ " + sttWhatStr.substring(0, sttWhatStr.lastIndexOf(",")) + "}";     // remove the last ","
                                      else
-                                        sttWhatStr = "{}";
+                                         sttWhatStr = "{}";
                                      String sttJsonStr = "{\"stt_id\":\"" + id + "\","
                                              + "\"stt_where\":{\"point\":[" + latitude + "," + longitude + "]},"
                                              + "\"stt_when\":{\"datetime\":" + minStartTime.getMillis() + "},"
@@ -704,9 +726,9 @@ public class KafkaToMongoRoute extends RouteBuilder {
 //                .to("mongodb:mongoBean?database=events&collection=twitter&operation=insert")
                 .
 
-        recipientList(header("mPath")
+                        recipientList(header("mPath")
 
-        );
+                        );
         from("direct:directLoad")
                 .convertBodyTo(String.class)
 //                            .aggregate(header("kafka.TOPIC"), new SimpleAggregationStrategy())
@@ -725,7 +747,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
 //                                    List<String> resultList = exchange.getIn().getBody(ArrayList.class);
 //                                    for (String result : resultList) {
                         String result = exchange.getIn().getBody(String.class);
-                            JsonParser parser = new JsonParser();
+                        JsonParser parser = new JsonParser();
                         final JsonElement jsonElement = parser.parse(result);
                         DBObject dbObject;
                         JsonObject jObj = null;
@@ -777,4 +799,4 @@ public class KafkaToMongoRoute extends RouteBuilder {
 
         //System.out.println(startTime.getMillis());
     }
-    }
+}

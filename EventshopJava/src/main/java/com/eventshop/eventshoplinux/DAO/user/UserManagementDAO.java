@@ -20,6 +20,8 @@ public class UserManagementDAO extends BaseDAO {
 		ResultSet rs = null;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SELECT_USRMSTR_QRY);
 			rs = ps.executeQuery();
 
@@ -30,7 +32,12 @@ public class UserManagementDAO extends BaseDAO {
 			}
 
 		} catch (Exception e) {
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
+
 
 		return user;
 	}
@@ -40,6 +47,8 @@ public class UserManagementDAO extends BaseDAO {
 		PreparedStatement ps = null;
 		String userKey = user.getAuthentication();
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(INSERT_USERMSTR_QRY);
 			ps.setString(1, user.getEmailId());
 			ps.setString(2, user.getPassword());
@@ -56,7 +65,11 @@ public class UserManagementDAO extends BaseDAO {
 		} catch (Exception e) {
 			LOGGER.info("exception is here" + e.getMessage());
 			return FAILURE;
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
+
 
 	}
 
@@ -68,6 +81,8 @@ public class UserManagementDAO extends BaseDAO {
 		int id = -1;
 		String authQuery = SELECT_USRMSTR_AUTH_QRY;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(authQuery);
 			ps.setString(1, loginUser.getUserName());
 			rs = ps.executeQuery();
@@ -80,6 +95,8 @@ public class UserManagementDAO extends BaseDAO {
 					+ adminRole + SELECT_USRMSTR_ADMIN_ARG_QRY : userQuery);
 
 			try {
+				if(con.isClosed())
+					con = this.connection();
 				ps = con.prepareStatement(userQuery);
 				ps.setString(1, loginUser.getUserName());
 				ps.setString(2, loginUser.getPassword());
@@ -104,7 +121,12 @@ public class UserManagementDAO extends BaseDAO {
 		} catch (Exception ex) {
 			LOGGER.info(DB_EXPT + ex.getMessage());
 			loginUser.setId(id);
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
+
 		return loginUser;
 	}
 
@@ -116,6 +138,8 @@ public class UserManagementDAO extends BaseDAO {
 		int id = -1;
 		String authQuery = SELECT_USR_FROM_EMAIL;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(authQuery);
 			ps.setString(1, email);
 			rs = ps.executeQuery();
@@ -124,7 +148,12 @@ public class UserManagementDAO extends BaseDAO {
 			}
 		} catch (Exception e) {
 			e.printStackTrace();
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
+
 		return 0;
 
 	}

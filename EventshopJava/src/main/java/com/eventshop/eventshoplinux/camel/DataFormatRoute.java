@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.*;
 
 /**
@@ -39,6 +40,21 @@ import java.util.*;
  */
 public class DataFormatRoute extends RouteBuilder {
     private final static Logger LOGGER = LoggerFactory.getLogger(DataFormatRoute.class);
+
+    private static MongoClient mongoClient = null;
+    private static DB db = null;
+    private static DB checkConnection() throws UnknownHostException {
+        if(mongoClient == null)
+            mongoClient = new MongoClient(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
+        if(db == null){
+            db = (mongoClient.getDB(Config.getProperty("mongoDB")));
+        }
+        return db;
+    }
+    private static void closeMongoClient(){
+        if(mongoClient != null)
+            mongoClient.close();
+    }
     @Override
     public void configure() throws Exception {
         /**
@@ -277,17 +293,16 @@ public class DataFormatRoute extends RouteBuilder {
 
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         exchange.getOut().setBody(exchange.getIn().getBody());
-                        MongoClient mongoClient = new MongoClient();
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         String dsId = ds.getSrcID();
-                        DB db = mongoClient.getDB(Config.getProperty("mongoDB"));
+                        DB db = checkConnection();
                         LOGGER.info("Trying to index...");
                         boolean collectionExists = db.collectionExists("ds" + dsId);
                         if (collectionExists == false) {
                             try {
                                 db.createCollection("ds" + dsId, null);
 
-                                DBCollection col = mongoClient.getDB(Config.getProperty("mongoDB")).getCollection("ds" + ds.getSrcID());
+                                DBCollection col = db.getCollection("ds" + ds.getSrcID());
                                 col.createIndex(new BasicDBObject("timeStamp", -1));
                                 //col.ensureIndex(new BasicDBObject("timeStamp",-1),"sparse",true);
 

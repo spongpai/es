@@ -46,6 +46,8 @@ public class QueryListDAO extends BaseDAO {
 				: adminQryListSql + conditionQryListSql;
 
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(qrySql);
 			if (user.getRoleId() != 1) { // Normal User Qrylist
 				ps.setInt(1, user.getId());
@@ -70,6 +72,10 @@ public class QueryListDAO extends BaseDAO {
 			}
 
 		} catch (Exception e) {
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getUserQuery()");
 		return qryList;
@@ -84,6 +90,8 @@ public class QueryListDAO extends BaseDAO {
 		ResultSet rs = null;
 		boolean flag = false;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SLT_QRYMSTR_QRY);
 			ps.setInt(1, qID);
 			rs = ps.executeQuery();
@@ -93,6 +101,10 @@ public class QueryListDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return flag;
 	}
@@ -127,6 +139,8 @@ public class QueryListDAO extends BaseDAO {
 			}
 		}
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(INST_QRYMSTR_DEFAULT_QRY);
 			ps.setString(1, selectedQueryRun.trim());
 			ps.setInt(
@@ -153,7 +167,7 @@ public class QueryListDAO extends BaseDAO {
 			/*
 			 * //child if (firstInsrtedQryId != 0) { ps =
 			 * connection.prepareStatement(INST_QRYMSTR_QRY);
-			 * 
+			 *
 			 * ps.setString(1, selectedQueryRun.trim()); // esql ps.setInt(2,
 			 * (qryDTO.getTimeWindow() == null ||
 			 * qryDTO.getTimeWindow().equals("")
@@ -168,12 +182,12 @@ public class QueryListDAO extends BaseDAO {
 			 * hardcoded--qryDTO.getQueryStatus() if
 			 * (getQueryStatus(qryDTO.getqID())) { ps.setString(6,RUNNING); }
 			 * else { ps.setString(6,STOPPED); }
-			 * 
+			 *
 			 * ps.setInt(7, firstInsrtedQryId); ps.setInt(8,
 			 * qryDTO.getQryCreatorId()); ps.setString(9,qryDTO.getQueryName());
 			 * // no entry in UI yet -- sanjukta
 			 * System.out.println("reghister query parenttt"); }else {
-			 * 
+			 *
 			 * ps = connection.prepareStatement(INST_QRYMSTR_DEFAULT_QRY);
 			 * ps.setString(1, selectedQueryRun.trim()); ps.setInt(2,
 			 * (qryDTO.getTimeWindow() == null ||
@@ -185,7 +199,7 @@ public class QueryListDAO extends BaseDAO {
 			 * qryDTO.getQueryStatus()); // if (getQueryStatus(qryDTO.getqID()))
 			 * { // ps.setString(6,RUNNING); // } else {
 			 * ps.setString(6,STOPPED); // }
-			 * 
+			 *
 			 * ps.setInt(7, qryDTO.getQryCreatorId());
 			 * ps.setString(8,qryDTO.getQueryName()); // no entry in UI yet --
 			 * sanjukta System.out.println("reghister query chilldd"); }
@@ -200,6 +214,9 @@ public class QueryListDAO extends BaseDAO {
 		} catch (Exception e) {
 			// log.error(e.getMessage());
 			LOGGER.info("exceptionnn e11" + e);
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("reghister query1 with id " + lastQryId);
 		return lastQryId;
@@ -214,6 +231,8 @@ public class QueryListDAO extends BaseDAO {
 		ResultSet rs = null;
 		String qryEsql = "";
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SLT_QRYMSTR_QRY);
 			ps.setInt(1, qID);
 			rs = ps.executeQuery();
@@ -224,6 +243,10 @@ public class QueryListDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return qryEsql;
 	}
@@ -241,6 +264,8 @@ public class QueryListDAO extends BaseDAO {
 		FrameParameters frmParmObj = new FrameParameters();
 		String[] boundingBox = null;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SLT_QRYMSTR_RUN_QRY);
 			ps.setInt(1, qryId);
 			rs = ps.executeQuery();
@@ -259,6 +284,10 @@ public class QueryListDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getFrameParameterQry()"
 				+ frmParmObj.getTimeWindow());
@@ -275,6 +304,8 @@ public class QueryListDAO extends BaseDAO {
 		String statusControl = CONTROLFLAG; // Running
 		String sqlQry = SELECT_QRYMSTR_ADMIN_QRY;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(sqlQry);
 			rs = ps.executeQuery();
 
@@ -307,6 +338,10 @@ public class QueryListDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getQueryList()");
 		return qryList;
@@ -342,6 +377,8 @@ public class QueryListDAO extends BaseDAO {
 		ResultSet rs = null;
 		List<String> qryEsql = new ArrayList<String>();
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(SQL_QUERY_TREE);
 			ps.setInt(1, qid_parent);
 			ps.setInt(2, qid_parent);
@@ -353,6 +390,10 @@ public class QueryListDAO extends BaseDAO {
 		} catch (Exception e) {
 
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		LOGGER.debug("querESQL " + qryEsql);
 		return qryEsql;
@@ -376,6 +417,8 @@ public class QueryListDAO extends BaseDAO {
 		ResultSet rs = null;
 		String sqlQry = SELECT_QRYMSTR_ALL;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(sqlQry);
 			rs = ps.executeQuery();
 
@@ -399,6 +442,10 @@ public class QueryListDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getQueryList()");
 		return qryList;
@@ -408,6 +455,8 @@ public class QueryListDAO extends BaseDAO {
 		PreparedStatement ps = null;
 		boolean status = false;
 		try {
+			if(con.isClosed())
+				con=this.connection();
 			ps = con.prepareStatement(ENABLE_QUERY);
 			ps.setInt(1, queryID);
 			ps.executeUpdate();
@@ -415,6 +464,9 @@ public class QueryListDAO extends BaseDAO {
 		} catch (Exception e) {
 			log.error("Exception in enabling Query {}", e);
 			e.printStackTrace();
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 	}
@@ -423,6 +475,8 @@ public class QueryListDAO extends BaseDAO {
 		PreparedStatement ps = null;
 		boolean status = false;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(DISABLE_QUERY);
 			ps.setInt(1, queryID);
 			ps.executeUpdate();
@@ -430,6 +484,9 @@ public class QueryListDAO extends BaseDAO {
 		} catch (Exception e) {
 			log.error("Exception in disabling Query {}", e);
 			e.printStackTrace();
+		}finally {
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		return status;
 	}
@@ -443,6 +500,8 @@ public class QueryListDAO extends BaseDAO {
 		ResultSet rs = null;
 		String sqlQry = SELECT_ENABLED_QUERIES_WITH_DS_ID;
 		try {
+			if(con.isClosed())
+				con = this.connection();
 			ps = con.prepareStatement(sqlQry);
 			ps.setString(1, "1");
 			ps.setString(2, "%ds" + dsID + "%");
@@ -468,6 +527,10 @@ public class QueryListDAO extends BaseDAO {
 
 		} catch (Exception e) {
 			log.error(e.getMessage());
+		}finally {
+			try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+			try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+			try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
 		}
 		log.info("Completed getQueryList()");
 		return qryList;

@@ -16,10 +16,14 @@ import static com.eventshop.eventshoplinux.constant.Constant.*;
 public class DataSourceDao extends BaseDAO{
 
     public int registerDatasource (DataSource dataSource) {
+        PreparedStatement ps = null;
+        ResultSet rs= null;
         try {
             int inserted = 0;
             int key = 0;
-            PreparedStatement ps = con.prepareStatement(INSERT_DATASOURCE_QRY, Statement.RETURN_GENERATED_KEYS);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(INSERT_DATASOURCE_QRY, Statement.RETURN_GENERATED_KEYS);
             ps.setString(1, dataSource.getName());
             ps.setString(2, dataSource.getTheme());
             ps.setString(3, dataSource.getUrl());
@@ -27,7 +31,7 @@ public class DataSourceDao extends BaseDAO{
             ps.setInt(5, dataSource.getUser_Id());
             ps.setString(6, dataSource.getSyntax());
             inserted = ps.executeUpdate();
-            ResultSet rs = ps.getGeneratedKeys();
+            rs = ps.getGeneratedKeys();
             if ( rs.next() ) {
                 // Retrieve the auto generated key(s).
                 key = rs.getInt(1);
@@ -57,14 +61,21 @@ public class DataSourceDao extends BaseDAO{
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
         return 0;
     }
 
     public String deleteDatasource (int id) {
         int deleted = 0;
+        PreparedStatement ps = null;
         try {
-            PreparedStatement ps = con.prepareStatement(DELETE_WRAPPER_QUERY);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(DELETE_WRAPPER_QUERY);
             ps.setInt(1, id);
             deleted = ps.executeUpdate();
 
@@ -80,20 +91,27 @@ public class DataSourceDao extends BaseDAO{
                 deleted = ps.executeUpdate();
             }
             if(deleted != 0)
-            return "DataSource deleted succefully";
+                return "DataSource deleted succefully";
 
         } catch (SQLException e) {
             e.printStackTrace();
+        }finally {
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
 
         return "Exception in deleting Datasource";
     }
 
     public boolean getDsStatus(int dsId) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
-            PreparedStatement ps = con.prepareStatement(DS_STAT_QRY);
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(DS_STAT_QRY);
             ps.setInt(1, dsId);
-            ResultSet rs = ps.executeQuery();
+            rs = ps.executeQuery();
             if ( rs.next() ) {
                 String stat = rs.getString(1);
                 if (stat.equalsIgnoreCase("1"))
@@ -101,15 +119,23 @@ public class DataSourceDao extends BaseDAO{
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
         return false;
     }
 
     public boolean checkLinkedQuery(int id) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
         try {
             String ds = "ds" + id;
-            PreparedStatement ps = con.prepareStatement(GET_LINKED_DS);
-            ResultSet rs = ps.executeQuery();
+            if(con.isClosed())
+                con = this.connection();
+            ps = con.prepareStatement(GET_LINKED_DS);
+            rs = ps.executeQuery();
             while (rs.next()) {
 
                 if (!rs.getString("linked_ds").isEmpty() && rs.getString("linked_ds").contains(ds)) {
@@ -118,6 +144,10 @@ public class DataSourceDao extends BaseDAO{
             }
         } catch (SQLException e) {
             e.printStackTrace();
+        } finally {
+            try { if (rs != null) rs.close(); } catch (Exception e) { /* ignored */ }
+            try { if (ps != null) ps.close(); } catch (Exception e) { /* ignored */ }
+            try { if (con != null) con.close(); } catch (Exception e) { /* ignored */ }
         }
         return false;
     }

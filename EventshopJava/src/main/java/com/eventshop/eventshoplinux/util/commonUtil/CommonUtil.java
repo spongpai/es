@@ -29,6 +29,7 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 
+import com.mongodb.Mongo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -577,16 +578,19 @@ public class CommonUtil {
 		}
 		return false;
 	}
+	private static MongoClient mongoClient = null;
 
 	public static DB connectMongoDB() {
 		// Connect to mongodb
 		try {
-			MongoClient mongo = new MongoClient(
+			if(mongoClient == null)
+				mongoClient = new MongoClient(
 					Config.getProperty("mongoHost"), Integer.parseInt(Config
 							.getProperty("mongoPort")));
+
 			// get database, if database doesn't exists, mongodb will create it
 			// for you
-			return mongo.getDB(Config.getProperty("mongoDB"));
+			return mongoClient.getDB(Config.getProperty("mongoDB"));
 		} catch (UnknownHostException e) {
 			e.printStackTrace();
 		}
