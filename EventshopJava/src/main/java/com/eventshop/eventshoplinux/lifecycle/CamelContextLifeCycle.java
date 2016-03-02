@@ -33,6 +33,7 @@ public class CamelContextLifeCycle implements CamelContextLifecycle<JndiRegistry
 
     @Override
     public void afterStop(ServletCamelContext servletCamelContext, JndiRegistry jndiRegistry) throws Exception {
+        System.out.println("after stop camel life cycle: close mongo client connection");
         mongoClient.close();
     }
 

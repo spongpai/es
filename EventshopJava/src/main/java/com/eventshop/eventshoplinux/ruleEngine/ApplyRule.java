@@ -1,5 +1,6 @@
 package com.eventshop.eventshoplinux.ruleEngine;
 
+import com.eventshop.eventshoplinux.util.commonUtil.CommonUtil;
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
 import com.mongodb.*;
 import org.slf4j.Logger;
@@ -21,12 +22,13 @@ public class ApplyRule {
 
         System.out.println("rules<><><>:"+ rules.toString());
 
-        List<Rule> rulesList = rules.getRules();//TODO
+        List<Rule> rulesList = rules.getRules();
 
-        Mongo mongoConn = null;
+        //Mongo mongoConn = null;
         try {
-            mongoConn = new Mongo(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
-            DB mongoDb = mongoConn.getDB("events");
+            //mongoConn = new Mongo(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
+            //DB mongoDb = mongoConn.getDB("events");
+            DB mongoDb = CommonUtil.connectMongoDB();
             LOGGER.info("in apply rule: get source id ["+rules.getRuleID()+"]: " + rules.getSource());
             DBCollection collection = mongoDb.getCollection(rules.getSource());
 
@@ -154,11 +156,9 @@ public class ApplyRule {
             return result;
 
 
-        } catch (UnknownHostException e) {
+        } catch (Exception e) {
             e.printStackTrace();
             return null;
-        } finally{
-            mongoConn.close();
         }
 
     }

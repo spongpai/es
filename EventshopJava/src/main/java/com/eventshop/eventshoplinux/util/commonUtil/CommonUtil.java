@@ -29,6 +29,8 @@ import javax.media.jai.PlanarImage;
 import javax.media.jai.iterator.RandomIter;
 import javax.media.jai.iterator.RandomIterFactory;
 
+import com.eventshop.eventshoplinux.ruleEngine.ApplyRule;
+import com.eventshop.eventshoplinux.ruleEngine.Rules;
 import com.mongodb.Mongo;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -579,15 +581,21 @@ public class CommonUtil {
 		return false;
 	}
 	private static MongoClient mongoClient = null;
-
+	private static int numCreatedMongoClient = 0;
 	public static DB connectMongoDB() {
 		// Connect to mongodb
 		try {
-			if(mongoClient == null)
+			if(mongoClient == null) {
 				mongoClient = new MongoClient(
-					Config.getProperty("mongoHost"), Integer.parseInt(Config
-							.getProperty("mongoPort")));
+						Config.getProperty("mongoHost"), Integer.parseInt(Config
+						.getProperty("mongoPort")));
+				numCreatedMongoClient++;
+				System.out.println("create new mongoClient connection: " + numCreatedMongoClient);
 
+			}
+			//else{
+			//	System.out.println("use existing mongoClient connection: " + numCreatedMongoClient);
+			//}
 			// get database, if database doesn't exists, mongodb will create it
 			// for you
 			return mongoClient.getDB(Config.getProperty("mongoDB"));
@@ -597,13 +605,4 @@ public class CommonUtil {
 		return null;
 
 	}
-
-	// public void postToServlet() {
-	// HttpPost post = new
-	// HttpPost("http://localhost:8080/ServletExample/SampleServlet");
-	// post.setHeader("Content-Type", "application/xml");
-	// post.setEntity(new StringEntity(generateNewXML()));
-	// HttpClient client = new DefaultHttpClient();
-	// HttpResponse response = client.execute(post);
-	// }
 }

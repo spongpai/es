@@ -13,6 +13,7 @@ import com.amazonaws.services.sqs.model.Message;
 import com.amazonaws.services.sqs.model.ReceiveMessageRequest;
 import com.eventshop.eventshoplinux.domain.datasource.DataSource;
 import com.eventshop.eventshoplinux.lifecycle.DynamicRouteAdder;
+import com.eventshop.eventshoplinux.util.commonUtil.CommonUtil;
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -41,20 +42,6 @@ import java.util.*;
 public class DataFormatRoute extends RouteBuilder {
     private final static Logger LOGGER = LoggerFactory.getLogger(DataFormatRoute.class);
 
-    private static MongoClient mongoClient = null;
-    private static DB db = null;
-    private static DB checkConnection() throws UnknownHostException {
-        if(mongoClient == null)
-            mongoClient = new MongoClient(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
-        if(db == null){
-            db = (mongoClient.getDB(Config.getProperty("mongoDB")));
-        }
-        return db;
-    }
-    private static void closeMongoClient(){
-        if(mongoClient != null)
-            mongoClient.close();
-    }
     @Override
     public void configure() throws Exception {
         /**
@@ -295,7 +282,8 @@ public class DataFormatRoute extends RouteBuilder {
                         exchange.getOut().setBody(exchange.getIn().getBody());
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         String dsId = ds.getSrcID();
-                        DB db = checkConnection();
+                        //DB db = checkConnection();
+                        DB db = CommonUtil.connectMongoDB();
                         LOGGER.info("Trying to index...");
                         boolean collectionExists = db.collectionExists("ds" + dsId);
                         if (collectionExists == false) {
@@ -357,4 +345,20 @@ public class DataFormatRoute extends RouteBuilder {
                     }
                 });
     }
+    /*
+    private static MongoClient mongoClient = null;
+    private static DB db = null;
+    private static DB checkConnection() throws UnknownHostException {
+        if(mongoClient == null)
+            mongoClient = new MongoClient(Config.getProperty("mongoHost"), Integer.parseInt(Config.getProperty("mongoPort")));
+        if(db == null){
+            db = (mongoClient.getDB(Config.getProperty("mongoDB")));
+        }
+        return db;
+    }
+    private static void closeMongoClient(){
+        if(mongoClient != null)
+            mongoClient.close();
+    }
+    */
 }

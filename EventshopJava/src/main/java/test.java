@@ -1,3 +1,7 @@
+import com.eventshop.eventshoplinux.ruleEngine.ApplyRule;
+import com.eventshop.eventshoplinux.ruleEngine.Rules;
+import com.eventshop.eventshoplinux.util.commonUtil.CommonUtil;
+import com.mongodb.DB;
 import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterFactory;
