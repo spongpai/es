@@ -131,7 +131,7 @@ public class Constant {
 	public static final String SELECT_RULE_QRY= "SELECT * from RuleQueryMaster where RuleID=?";
 	public static final String SELECT_ALL_RULE_QRY = "SELECT * from RuleQueryMaster where user_id=?";
 	public static final String SELECT_ALL_RULEs_OFDS_QRY = "select * from RuleQueryMaster where source_id = ?";
- 	public static final String SELECT_RULE_DS_QRY= "select dm.dsmaster_id, dm.dsmaster_title, rm.RuleID, rm.Rule_Name from Datasource_Master dm, RuleQueryMaster rm  where dm.dsmaster_id = rm.source_id and  dsmaster_creator = ? and rm.source_type='ds'";
+	public static final String SELECT_RULE_DS_QRY= "select dm.dsmaster_id, dm.dsmaster_title, rm.RuleID, rm.Rule_Name from Datasource_Master dm, RuleQueryMaster rm  where dm.dsmaster_id = rm.source_id and  dsmaster_creator = ? and rm.source_type='ds'";
 
 	public static final String SELECT_ENABLED_RULE_OPERATOR_QRY = "SELECT r.Operator_id, r.DataType, r.Operators, r.status from RuleOperator r where r.status=1";
 

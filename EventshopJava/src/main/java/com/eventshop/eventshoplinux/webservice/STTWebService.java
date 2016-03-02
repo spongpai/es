@@ -75,10 +75,10 @@ public class STTWebService {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    @Path("/search/{ruleid}/circle/{centerlatlonradious}/{stime}/{etime}")
+    @Path("/search/{ruleid}/circle/{centerlatlonradius}/{stime}/{etime}")
     public String searchSTTwithing(
             @PathParam(value="ruleid") final int ruleid,
-            @PathParam(value="centerlatlonradious") final String params,			// 24.0,-125.0, 10
+            @PathParam(value="centerlatlonradius") final String params,			// 24.0,-125.0, 10
             @PathParam(value="stime") final String start,			// 2010-01-01T00:00:00Z
             @PathParam(value="etime") final String end)				// 2011-01-01T00:00:00Z
     {
