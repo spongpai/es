@@ -40,7 +40,7 @@ public class QueryService {
     @DELETE
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("/deleteQuery")
-    public String deletQuery(Query query) {
+    public String deleteQuery(Query query) {
         QueryDao queryDao = new QueryDao();
         boolean enabled = queryDao.getQueryStatus(query.getQuery_id());
         if (enabled)

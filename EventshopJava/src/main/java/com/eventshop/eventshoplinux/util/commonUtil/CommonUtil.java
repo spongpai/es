@@ -19,10 +19,7 @@ import java.lang.reflect.Field;
 import java.net.UnknownHostException;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import javax.media.jai.JAI;
 import javax.media.jai.PlanarImage;
@@ -605,4 +602,122 @@ public class CommonUtil {
 		return null;
 
 	}
+
+	public static List<Double> getCellValue(String operation, int rows, int cols, ArrayList<ArrayList<Double>> grid){
+		List<Double> outputList = new ArrayList<Double>();
+
+		for(int i = 0; i < rows*cols; i++)	// init outputlist
+			outputList.add(0.0);
+
+		if (operation.equalsIgnoreCase("sum")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double val = 0;
+				for (int j = 0; j < grid.get(i).size(); j++) {
+					val += (grid.get(i).get(j));
+				}
+				outputList.set(i, val);
+			}
+		} else if (operation.equalsIgnoreCase("min")) {
+
+
+			for (int i = 0; i < (rows * cols); i++) {
+				double val = 0;
+				double min = Double.MAX_VALUE;
+				for (int j = 0; j < grid.get(i).size(); j++) {
+					if (grid.get(i).get(j) < min) {
+						val = grid.get(i).get(j);
+						min = val;
+					}
+				}
+				outputList.set(i, val);
+			}
+
+		} else if (operation.equalsIgnoreCase("max")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double val = 0;
+				double max = (-Double.MAX_VALUE) + 1;
+				for (int j = 0; j < grid.get(i).size(); j++) {
+					if (grid.get(i).get(j) > max) {
+						val = grid.get(i).get(j);
+						max = val;
+					}
+				}
+				outputList.set(i, val);
+			}
+
+		} else if (operation.equalsIgnoreCase("avg")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double val = 0;
+				double avg = 0;
+				for (int j = 0; j < grid.get(i).size(); j++) {
+					val += (grid.get(i).get(j));
+				}
+				avg = val / grid.get(i).size();
+				outputList.set(i, val);
+			}
+		} else if (operation.equalsIgnoreCase("count")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double count = grid.get(i).size();
+				outputList.set(i, count);
+			}
+		} else if (operation.equalsIgnoreCase("majority")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double maj = CommonUtil.getMajority(grid.get(i));
+				outputList.set(i, maj);
+			}
+		} else if (operation.equalsIgnoreCase("most_freq")) {
+			for (int i = 0; i < (rows * cols); i++) {
+				double mostFreq = CommonUtil.getMostFreq(grid.get(i));
+				outputList.set(i, mostFreq);
+			}
+		}
+
+		return outputList;
+	}
+
+	public static double getMajority(List<Double> list) {
+		double pop = 0;
+		if (!list.isEmpty()) {
+			pop = list.get(0);
+			int count = 1;
+			for (int i = 1; i < list.size(); i++) {
+				if (list.get(i) == pop) {
+					count++;
+					if (count > list.size() / 2)
+						break;
+				} else {
+					if (i + count < list.size()
+							&& list.get(i).equals(list.get(i + count))) {
+						pop = list.get(i);
+						i = i + count;
+						count++;
+					}
+				}
+			}
+			if (count <= list.size() / 2)
+				pop = 0;
+		}
+		return pop;
+	}
+	public static double getMostFreq(List<Double> list) {
+		double pop = 0;
+		if (!list.isEmpty()) {
+			pop = list.get(0);
+			int count = 1;
+			for (int i = 1; i < list.size(); i++) {
+				if (list.get(i) == pop) {
+					count++;
+				} else {
+					if (i + count < list.size()
+							&& list.get(i).equals(list.get(i + count))) {
+						pop = list.get(i);
+						i = i + count;
+						count++;
+					}
+				}
+			}
+		}
+		return pop;
+	}
+
 }

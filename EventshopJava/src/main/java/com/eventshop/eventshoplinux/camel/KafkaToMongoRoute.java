@@ -654,7 +654,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                                  if (aMedia.has("caption")) {
                                                      String c = aMedia.get("caption").getAsString();
                                                      if(!c.isEmpty())
-                                                        caption += aMedia.get("caption").getAsString() + ",";
+                                                         caption += aMedia.get("caption").getAsString() + ",";
 
                                                  }
                                              } catch (Exception e){
