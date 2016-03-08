@@ -553,7 +553,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                      double latitude = 999;
                                      double longitude = 999;
                                      StringBuilder sttWhat = new StringBuilder();
-
+                                     String caption = "";
                                      for (int i = 0; i < mediaList.size(); i++) {
                                          JsonObject aMedia = mediaList.get(i).getAsJsonObject();
                                          //LOGGER.info(i + ":" + aMedia.toString());
@@ -595,11 +595,22 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                          }
 
                                          if (aMedia.has("media_source") && !aMedia.get("media_source").isJsonNull()) {
-                                             String mediaType = "", mediaUrl = "";
-                                             if (aMedia.has("media_type"))
+
+                                             String mediaType = "_" + i, mediaUrl = "";
+                                             if (aMedia.has("media_type")) {
                                                  mediaType = "_" + aMedia.get("media_type").getAsString().toLowerCase();
+                                             } else if(aMedia.getAsJsonObject("media_source").has("mime_type")){
+                                                 String type = aMedia.getAsJsonObject("media_source").get("mime_type").getAsString();
+                                                 if(type.contains("image"))
+                                                     mediaType = "_photo";
+                                                 else if(type.contains("audio"))
+                                                     mediaType = "_audio";
+                                                 else
+                                                     mediaType = "_" + type;
+                                             }
                                              if (aMedia.getAsJsonObject("media_source").has("default_src"))
                                                  mediaUrl = aMedia.getAsJsonObject("media_source").get("default_src").getAsString();
+
                                              sttWhat.append("\"media_source" + mediaType + "\":{\"value\":\"" + mediaUrl + "\"}, ");
                                              try{
                                                  if (aMedia.has("why")) {
@@ -641,15 +652,17 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                              }
                                              try {
                                                  if (aMedia.has("caption")) {
-                                                     sttWhat.append("\"caption\":{\"value\":\"" + aMedia.get("caption").getAsString() + "\"},");
-                                                 } else {
-                                                     sttWhat.append("\"caption\":{\"value\":\"\"},");
+                                                     String c = aMedia.get("caption").getAsString();
+                                                     if(!c.isEmpty())
+                                                        caption += aMedia.get("caption").getAsString() + ",";
+
                                                  }
                                              } catch (Exception e){
                                                  LOGGER.error(e.getMessage());
                                              }
                                          }
                                      }
+                                     sttWhat.append("\"caption\":{\"value\":\"" + caption + "\"},");
                                      String id = "";
                                      if (mediaJSON.has("id"))
                                          id = mediaJSON.get("id").getAsString();
