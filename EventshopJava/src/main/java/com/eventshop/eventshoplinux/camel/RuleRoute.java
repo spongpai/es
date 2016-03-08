@@ -7,6 +7,7 @@ import com.eventshop.eventshoplinux.model.STT;
 import com.eventshop.eventshoplinux.ruleEngine.ApplyRule;
 import com.eventshop.eventshoplinux.ruleEngine.Rules;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -116,6 +117,17 @@ public class RuleRoute extends RouteBuilder {
                                 Double lon = jsonObj2.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude");
                                 eLocation = new ELocation(lon,lat);
                                 System.out.println("Where.GeoLoc: "+eLocation.toString());
+                            } else if(jsonObj.has("stt_where")){
+                                JSONObject where = jsonObj.getJSONObject("stt_where");
+                                if(where.has("point")){
+                                    Double lat = where.getJSONArray("point").getDouble(0);
+                                    Double lon = where.getJSONArray("point").getDouble(1);
+                                    eLocation = new ELocation(lon, lat);
+
+                                } else if(where.has("rectangle")){
+
+                                }
+
                             }
                             STT stt = new STT();
 //                            stt.set_id(jsonObj.getLong("_id"));

@@ -28,8 +28,8 @@ public class ResolutionWrapper {
 	}
 
 	public enum SpatialWrapper {
-		sum, min, max, average, count, most_freq, majority, // for point to grid
-		linear_interpolation, repeat, split_uniform, nearest
+		sum, min, max, average, count, most_freq, majority,
+		linear_interpolation, repeat, split_uniform, nearest // for point to grid
 	}
 
 	// The method to determine how the cell will be assigned a value when more

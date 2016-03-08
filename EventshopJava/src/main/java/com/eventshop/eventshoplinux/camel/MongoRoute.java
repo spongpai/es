@@ -9,6 +9,7 @@ import com.eventshop.eventshoplinux.model.MongoResponse;
 import com.eventshop.eventshoplinux.ruleEngine.ApplyRule;
 import com.eventshop.eventshoplinux.ruleEngine.Rule;
 import com.eventshop.eventshoplinux.ruleEngine.Rules;
+import com.eventshop.eventshoplinux.util.commonUtil.CommonUtil;
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -259,10 +260,21 @@ public class MongoRoute extends RouteBuilder {
                         try {
                             for (int i = 0; i < array.length(); i++) {
                                 MongoResponse mongoResponse = new MongoResponse();
-                                mongoResponse.setValue(array.getJSONObject(i).getDouble("value"));
+                                JSONObject aObj = array.getJSONObject(i);
+                                if(aObj.has("value"))
+                                    mongoResponse.setValue(aObj.getDouble("value"));
+                                else
+                                    mongoResponse.setValue(1.0);
+
                                 ELocation loc = new ELocation();
-                                loc.setLon(array.getJSONObject(i).getJSONObject("loc").getDouble("lon"));
-                                loc.setLat(array.getJSONObject(i).getJSONObject("loc").getDouble("lat"));
+                                if(aObj.has("loc")){
+                                    loc.setLon(array.getJSONObject(i).getJSONObject("loc").getDouble("lon"));
+                                    loc.setLat(array.getJSONObject(i).getJSONObject("loc").getDouble("lat"));
+                                } else if(aObj.has("where")){
+                                    loc.setLat(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("latitude"));
+                                    loc.setLon(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude"));
+                                }
+
                                 mongoResponse.setLoc(loc);
                                 list.add(mongoResponse);
                             }
@@ -396,12 +408,12 @@ public class MongoRoute extends RouteBuilder {
                                 }
                             } else if (operation.equalsIgnoreCase("majority")) {
                                 for (int i = 0; i < (rows * cols); i++) {
-                                    double maj = getMajority(grid.get(i));
+                                    double maj = CommonUtil.getMajority(grid.get(i));
                                     outputList.add(maj);
                                 }
                             } else if (operation.equalsIgnoreCase("most_freq")) {
                                 for (int i = 0; i < (rows * cols); i++) {
-                                    double mostFreq = getMostFreq(grid.get(i));
+                                    double mostFreq = CommonUtil.getMostFreq(grid.get(i));
                                     outputList.add(mostFreq);
                                 }
                             }
@@ -422,49 +434,4 @@ public class MongoRoute extends RouteBuilder {
                 .to("direct:emageBuilder");
     }
 
-
-    public double getMajority(List<Double> list) {
-        double pop = 0;
-        if (!list.isEmpty()) {
-            pop = list.get(0);
-            int count = 1;
-            for (int i = 1; i < list.size(); i++) {
-                if (list.get(i) == pop) {
-                    count++;
-                    if (count > list.size() / 2)
-                        break;
-                } else {
-                    if (i + count < list.size()
-                            && list.get(i).equals(list.get(i + count))) {
-                        pop = list.get(i);
-                        i = i + count;
-                        count++;
-                    }
-                }
-            }
-            if (count <= list.size() / 2)
-                pop = 0;
-        }
-        return pop;
-    }
-    public double getMostFreq(List<Double> list) {
-        double pop = 0;
-        if (!list.isEmpty()) {
-            pop = list.get(0);
-            int count = 1;
-            for (int i = 1; i < list.size(); i++) {
-                if (list.get(i) == pop) {
-                    count++;
-                } else {
-                    if (i + count < list.size()
-                            && list.get(i).equals(list.get(i + count))) {
-                        pop = list.get(i);
-                        i = i + count;
-                        count++;
-                    }
-                }
-            }
-        }
-        return pop;
-    }
 }
