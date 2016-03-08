@@ -200,7 +200,9 @@ public class STTWebService {
         long timeWindow = 0;
         long syncAtMilSec = 0;
         box = this.getStandardBox(box[0], box[1], box[2],box[3], latUnit, lonUnit);
+        LOGGER.info("stdbox" + box[0] + "," + box[1] + "," + box[2] + "," + box[3]);
         FrameParameters fp = new FrameParameters(timeWindow, syncAtMilSec, latUnit, lonUnit, box[0], box[1], box[2],box[3]);
+        LOGGER.info("fp: " + fp.toString());
         fp.setSpatial_wrapper(aggOp);
 
         JsonArray emage = this.getTempEmage(result, fp, themeName);
@@ -228,15 +230,16 @@ public class STTWebService {
     // the higher latitude, the smaller row number
     public int latitude2row(double latitude, double[] box, double latUnit){
         int numRows = (int) Math.ceil(Math.abs(box[2] - box[0]) / latUnit);
+        LOGGER.info("numRows: " + numRows + ", row_index: " + (int) Math.ceil((box[2]- latitude)/latUnit) + ", lat" + latitude + ", minLat " + box[0]);
         if(latitude >= box[0] && latitude < box[2])
-            return numRows - (int) Math.ceil((latitude - box[0])/latUnit) - 1;
+            return (int) Math.ceil((box[2]- latitude)/latUnit) - 1;
         else
             return -1;
     }
 
     public int longitude2col(double longitude, double[] box, double longUnit){
         if(longitude >= box[1] && longitude < box[3])
-            return (int) Math.ceil((longitude - box[1])/longUnit);
+            return (int) Math.floor((longitude - box[1])/longUnit);
         else
             return -1;
     }
@@ -245,7 +248,7 @@ public class STTWebService {
     public double[] index2latlon(int index, FrameParameters fp){
         int row = index/fp.numOfColumns;
         int col = index%fp.numOfColumns;
-        double lat = fp.getSwLat() + ((fp.getNumOfRows() - row - 1)*fp.latUnit);
+        double lat = fp.getNeLat() - (row + 1)*fp.latUnit;
         double lon = fp.getSwLong() + (col*fp.longUnit);
         return new double[]{lat, lon};
     }
@@ -254,10 +257,11 @@ public class STTWebService {
     public JsonObject index2rectangle(int index, FrameParameters fp){
         int row = index/fp.numOfColumns;
         int col = index%fp.numOfColumns;
-        double lat = fp.getSwLat() + ((fp.getNumOfRows() - row - 1)*fp.latUnit);
+
+        double lat = fp.getNeLat() - ((row+1)*fp.latUnit);
         double lon = fp.getSwLong() + (col*fp.longUnit);
         String rectStr = "{\"rectangle\":[{\"point\":[" + lat + "," + lon + "]}, {\"point\":[" + (lat + fp.latUnit) + "," + (lon + fp.longUnit) +"]}]}";
-        LOGGER.info(rectStr);
+        LOGGER.info("row,col:" + row + "," + col + "," + rectStr);
         JsonParser parser = new JsonParser();
         return parser.parse(rectStr).getAsJsonObject();
     }
@@ -296,8 +300,13 @@ public class STTWebService {
                 }
             }
             //RowNumber * Cols + colNumber
-            int point = ((int) ((((fp.neLat - (((Math.ceil(lat / fp.latUnit)) * fp.latUnit) + (fp.neLat % fp.latUnit))) / fp.latUnit)) * fp.getNumOfColumns())
-                    + (int) (((((Math.floor(lon / fp.longUnit)) * fp.longUnit) - fp.swLong) - (fp.swLat % fp.longUnit)) / fp.longUnit));
+            //int point = ((int) ((((fp.neLat - (((Math.ceil(lat / fp.latUnit)) * fp.latUnit) + (fp.neLat % fp.latUnit))) / fp.latUnit)) * fp.getNumOfColumns())
+            //        + (int) (((((Math.floor(lon / fp.longUnit)) * fp.longUnit) - fp.swLong) - (fp.swLat % fp.longUnit)) / fp.longUnit));
+            double[] box = new double[]{fp.swLat, fp.swLong, fp.neLat, fp.neLong};
+            int row = this.latitude2row(lat, box, fp.latUnit);
+            int col = this.longitude2col(lon, box, fp.longUnit);
+            int point = row*fp.numOfColumns + col;
+            LOGGER.info("lat,lon,row,col,point: " + lat + "," + lon + "," + row + "," + col + "," + point + " ["+fp.latUnit+", " + fp.longUnit+"]");
             if (point > 0 && point < (rows * cols)) {
                 grid.get(point).add(value);
                 gridSTT.get(point).add(sttObj);
