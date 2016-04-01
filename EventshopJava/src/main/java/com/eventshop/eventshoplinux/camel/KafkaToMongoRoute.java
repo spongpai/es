@@ -6,8 +6,11 @@ import com.eventshop.eventshoplinux.model.ELocation;
 import com.eventshop.eventshoplinux.model.STT;
 import com.eventshop.eventshoplinux.ruleEngine.EventshopUtils;
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
+import com.fasterxml.jackson.core.*;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.JsonNodeType;
 import com.google.gson.*;
+import com.google.gson.JsonParser;
 import com.jayway.jsonpath.Configuration;
 import com.jayway.jsonpath.JsonPath;
 import com.jayway.jsonpath.internal.spi.json.JacksonJsonNodeJsonProvider;
@@ -67,6 +70,8 @@ public class KafkaToMongoRoute extends RouteBuilder {
                         ds = ds.replace("ds", "");
                         DataSource dataSource = DataCache.registeredDataSources.get(ds);
                         List<String> resultList = exchange.getIn().getBody(ArrayList.class);
+                        //String dsType = exchange.getIn().getHeader("datasource_type", String.class);
+
 
                         final Configuration configuration = Configuration.builder()
                                 .jsonProvider(new JacksonJsonNodeJsonProvider())
@@ -82,7 +87,10 @@ public class KafkaToMongoRoute extends RouteBuilder {
                             ConcurrentHashMap<String, Object> map = EventshopUtils.convertSyntaxToJson(syntax);
                             JsonParser parser = new JsonParser();
                             JsonObject jObj = parser.parse(dataSource.getWrapper().getWrprKeyValue()).getAsJsonObject();
-
+                            String sttType = "point";
+                            if(jObj.has("datasource_type")){
+                                sttType = jObj.get("datasource_type").getAsString();
+                            }
                             String line = input.replace("[", "");
                             line = line.replace("]", "");
                             String[] lineSplit = line.split(",");
@@ -133,6 +141,21 @@ public class KafkaToMongoRoute extends RouteBuilder {
                             if (!hasDateTime) {
                                 dateVal = new Date();
                                 asJsonObject.addProperty("timestamp", dateVal.getTime());
+                            }
+                            //System.out.println("sttType: " + sttType);
+                            if(sttType.equalsIgnoreCase("point")){
+                                JsonArray point = new JsonArray();
+                                double lat =999, lon=999;
+                                if(asJsonObject.has("stt_where")){
+                                    if(asJsonObject.getAsJsonObject("stt_where").has("lat"))
+                                        lat = asJsonObject.getAsJsonObject("stt_where").get("lat").getAsDouble();
+                                    if(asJsonObject.getAsJsonObject("stt_where").has("lon"))
+                                        lon = asJsonObject.getAsJsonObject("stt_where").get("lon").getAsDouble();
+
+                                }
+                                point.add(new JsonPrimitive(lat));
+                                point.add(new JsonPrimitive(lon));
+                                asJsonObject.get("stt_where").getAsJsonObject().add("point", point);
                             }
                             DBObject dbObj = (DBObject) JSON.parse(asJsonObject.toString());
                             //Add the document to the document list to update as a batch

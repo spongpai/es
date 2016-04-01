@@ -62,6 +62,20 @@ public class FrameParameters {
 
 	}
 
+	public void setDefaultValues(){
+		this.timeWindow = 300000;
+		this.syncAtMilSec = 0;
+
+		this.latUnit = 2.0;
+		this.longUnit = 2.0;
+		this.swLat = 10;
+		this.swLong = 20;
+		this.neLat = 20;
+		this.neLong = 40;
+
+		calcRowsColumns();
+	}
+
 	public void calcRowsColumns() {
 		double columns = (BigDecimal.valueOf(swLong))
 				.subtract(BigDecimal.valueOf(neLong), context)

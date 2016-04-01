@@ -96,10 +96,14 @@ public class EventshopServletListener implements ServletContextListener {
         final ActorRef aggregationQueryActor = actorSystem.actorOf(Props.create(AggregationQueryActor.class));
         final ActorRef temporalCharQueryActor = actorSystem.actorOf(TemporalCharQueryActor.props(mongoQueryRouteProducerActor));
         final ActorRef temporalPatternQueryActor = actorSystem.actorOf(TemporalPatternQueryActor.props(mongoQueryRouteProducerActor));
-        
+        final ActorRef scriptActorQueryActor = actorSystem.actorOf(Props.create(ScriptQueryActor.class));
+
+        //final ActorRef masterQueryActor = actorSystem.actorOf(MasterQueryActor.props(filterQueryActor, groupingQueryActor
+        //       , spatialCharQueryActor, spatialPatternQueryActor, aggregationQueryActor, temporalCharQueryActor
+        //        , mongoQueryRouteProducerActor, temporalPatternQueryActor, ruleRouteProducerActor, alertRouteProducer));
         final ActorRef masterQueryActor = actorSystem.actorOf(MasterQueryActor.props(filterQueryActor, groupingQueryActor
                 , spatialCharQueryActor, spatialPatternQueryActor, aggregationQueryActor, temporalCharQueryActor
-                , mongoQueryRouteProducerActor, temporalPatternQueryActor, ruleRouteProducerActor, alertRouteProducer));
+                , mongoQueryRouteProducerActor, temporalPatternQueryActor, scriptActorQueryActor, ruleRouteProducerActor, alertRouteProducer));
         final ActorRef queryProcessRouteProducer = actorSystem.actorOf(Props.create(QueryProcessRouteProducer.class));
         final ActorRef dataProcessRouteProducer = actorSystem.actorOf(Props.create(DataProcessRouteProducer.class));
         final ActorRef twitterActor = actorSystem.actorOf(Props.create(TwitterActor.class));

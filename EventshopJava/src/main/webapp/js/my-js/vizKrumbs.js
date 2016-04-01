@@ -1,5 +1,24 @@
 
 $(function() {
+
+    function populateDSList(){
+        var select = document.getElementById("dsname");
+        var names = ["myuci-ngss-uci", "places-ngss-uci", 'sampleapp-ngss-uci', 'smartcities-pspl-in','ssmyuci-ngss-uci',
+            'task-ngss-uci', 'ucicomplaints-ngss-uci', 'uciconnect-ngss-uci', 'ucieventlog-ngss-uci', 'uciphotos-ngss-uci',
+            'venues-ngss-uci', 'viznotes-ngss-uci'];
+        var values = ['70', '71', '177', '72', '178',
+            '179', '77', '73', '181', '74',
+            '180', '75'];
+
+        for(var i = 0; i < names.length; i++) {
+            var el = document.createElement("option");
+            el.textContent = names[i];
+            el.value = values[i];
+            select.appendChild(el);
+        }
+    }
+    populateDSList();
+
     var formData = [];
     // Legend Container
     // Create a rainbow from a pretty color scheme.
@@ -15,8 +34,9 @@ $(function() {
         //center: new google.maps.LatLng(37.00, -120.00),
         //center: {lat: 37.090, lng: -95.712},
         center: {lat: 37.090, lng: -10.00},	// world
-        center: {lat: 33.5, lng: -117.0},
-        zoom: 8,
+        center: {lat: 33.5, lng: -117.0},   // so-cal
+        center: {lat: 33.6, lng: -117.8},   // uci
+        zoom: 11,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
         streetViewControl: false,
         draggable : true,
@@ -130,7 +150,7 @@ $(function() {
                 map: map,
                 center: new_map_cells[i].center,
                 value: new_map_cells[i].value,
-                fmblist: new_map_cells[i].fmblist
+                sttlist: new_map_cells[i].sttlist
                 //radius: radius//200 * (20 - map.getZoom())^2
             });
             //alert(map_circle.getRadius());
@@ -192,10 +212,10 @@ $(function() {
             }
         };
         sliderOptions = {
-            max: 10,
-            min: 0.1,
-            step: 0.1,
-            value: 0.5,
+            max: 0.1,
+            min: 0.001,
+            step: 0.001,
+            value: 0.0125,
             slidechange: updateSliderDisplay,
             slide: updateSliderDisplay,
             start: updateSliderDisplay,
@@ -218,32 +238,10 @@ $(function() {
         var end_dp= $("#end-date").datepicker(dateOptions);
         end_dp.val(dateOptions.defaultDate);
 
-        // Explore Mode: Toggle Selection/Location Search
-        $('#selection-button').on('change', function (e) {
-            $("#location-text-box").attr("disabled", "disabled");
-            rectangleManager.setMap(map);
-            if (selectionRectangle) {
-                selectionRectangle.setMap(null);
-                selectionRectangle = null;
-            } else {
-                rectangleManager.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
-            }
-        });
-        $('#location-button').on('change', function (e) {
-
-            $("#location-text-box").removeAttr("disabled");
-            selectionRectangle.setMap(null);
-            rectangleManager.setMap(null);
-            rectangleManager.setDrawingMode(google.maps.drawing.OverlayType.RECTANGLE);
-        });
-        $("#selection-button").trigger("click");
-
-        // Explore Mode - Clear Button
-        $("#clear-button").click(mapWidgetResetMap);
 
         // Explore Mode: Query Submission
         $("#submit-button").on("click", function () {
-
+            $('#popup_id').hide();
             $("#report-message").html('');
             //$("#submit-button").attr("disabled", true);
             rectangleManager.setDrawingMode(null);
@@ -327,6 +325,7 @@ $(function() {
                 success: function( response ) {
                     //console.log(response);
                     // select as Emage
+                    $('#popup_id').hide();
                     queryCallback(response);
                 }
             } );
@@ -363,7 +362,8 @@ $(function() {
         // Parse resulting JSON objects.
         var minWeight = 99999, maxWeight = -99999, minAggval = 999999, maxAggval = -99999;
         var cells = [];
-
+        $('#emage-output').html('');
+        $('#emage-output').append('lat,lng,count<br>');
         $.each(res, function(i, data){
 
             var centerLat = (data.cell.rectangle[0].point[0] + data.cell.rectangle[1].point[0])/ 2.00000;
@@ -382,6 +382,8 @@ $(function() {
             };
 
 
+            console.log("list" + data.values.orderedlist);
+
             // We track the minimum and maximum weight to support our legend.
             maxWeight = Math.max(cell["value"], maxWeight);
             minWeight = Math.min(cell["value"], minWeight);
@@ -389,7 +391,7 @@ $(function() {
             maxAggval = Math.max(cell["value"], maxAggval);
             minAggval = Math.min(cell["value"], minAggval);
 
-            $('#emage-output').append(cell["center"].lat + "," + cell["center"].lng + ", " + cell["value"] + "<br>");
+            $('#emage-output').append(cell["center"].lat + "," + cell["center"].lng + "," + cell["value"] + "<br>");
             cells.push(cell);
         });
 
@@ -451,7 +453,7 @@ $(function() {
                 map: map,
                 center: mapPlotData[i].center,
                 value: mapPlotData[i].value,
-                fmblist: mapPlotData[i].list
+                sttlist: mapPlotData[i].list
             });
             map_cells.push(map_polygon);
         }
@@ -478,17 +480,25 @@ $(function() {
             google.maps.event.addListener(marker, 'click', function(event) {
 
                 var data = [];
-                for(var j = 0; j < this.fmblist.length; j++){
-                    var fmb = {
-                        image: this.fmblist[j].stt_what.media_source.value,
-                        title: this.fmblist[j].stt_what.caption.value,
-                        link: this.fmblist[j].stt_what.media_source.value,
-                        //description: marker.fmblist[j].stt_what.caption.value,
-                        //link: this.fmblist[j].stt_what.k_url.value,
-                        layer: '<div>' + this.fmblist[j].stt_what.caption.value + '</div>'
-                    };
-                    console.log(fmb);
-                    data.push(fmb);
+                for(var j = 0; j < this.sttlist.length; j++) {
+                    var stt_what = this.sttlist[j].stt_what;
+                    var image_source = "";
+                    if (stt_what.hasOwnProperty("media_source_photo")) {
+                        image_source = stt_what.media_source_photo.value;
+                    } else if (stt_what.hasOwnProperty("media_source")) {
+                        image_source = stt_what.media_source.value;
+                    }
+                    if (image_source != "" && image_source.indexOf(".3gp") == -1 ){
+                        var fmb = {
+
+                            image: image_source,
+                            title: this.sttlist[j].stt_what.caption.value,
+                            //link: image_source,
+                            layer: '<div>' + this.sttlist[j].stt_what.caption.value + '</div>'
+                        };
+                        console.log(fmb);
+                        data.push(fmb);
+                    }
                 }
                 //console.log("fmb data: " + data);
                 //console.log("fmb data lenght: " + data.length);
@@ -624,7 +634,7 @@ $(function() {
             var enddate = item.end+"T00:00:00Z";
             var sDate = new Date(startdate);
             var eDate = new Date(enddate);
-            alert('selected items: ' + sDate.getTime() + ', ' + eDate.getTime());
+            //alert('selected items: ' + sDate.getTime() + ', ' + eDate.getTime());
 
             $("#report-message").html('');
             //$("#submit-button").attr("disabled", true);
@@ -634,16 +644,20 @@ $(function() {
             //updateParameter(startdate,enddate, "", "", true, true);
             console.log('formData: ' + formData["startdt"] + ',' + formData["enddt"]);
 
-            formData["dsname"] = 5;
-            var query = 'rest/sttwebservice/search/'+formData["dsname"]+'/box'
-            +'/'+formData["swLat"]+','+formData["swLng"] + '/'+formData["neLat"]+','+formData["neLng"]
-            +'/'+sDate.getTime()+'/'+ eDate.getTime() + '/' + getLatLonRes() + '/count/null/emage';
+            //formData["dsname"] = 5;
+            var ruleid = formData["dsname"];
+            //alert('ruleid' + $('#ruleid').val() );
+            if($("#ruleid").val() != "")
+                ruleid = $("#ruleid").val();
+            var query = 'rest/sttwebservice/search/'+ruleid+'/box'
+                +'/'+formData["swLat"]+','+formData["swLng"] + '/'+formData["neLat"]+','+formData["neLng"]
+                +'/'+sDate.getTime()+'/'+ eDate.getTime() + '/' + getLatLonRes() + '/count/null/emage';
 
             //var query = 'webresources/queryservice/asterixds/'+formData["dsname"]+'/'
             //    + formData["selectedTheme"] +'/'+formData["swLat"]+','+formData["swLng"]
             //    + '/'+formData["neLat"]+','+formData["neLng"]
             //    + '/'+formData["startdt"]+'/'+formData["enddt"]  + '/' + getLatLonRes() + '/emage';
-            $('#emage-query').html(query);
+            $('#emage-query').html("<a target='_blank' href='http://sln.ics.uci.edu:8085/eventshoplinux/" + query + "'>"+query+"</a>");
             startTimer = performance.now()
             $.ajax( {
                 url: query,

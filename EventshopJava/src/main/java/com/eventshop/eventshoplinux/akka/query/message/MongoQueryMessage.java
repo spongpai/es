@@ -70,4 +70,11 @@ public class MongoQueryMessage {
     public String getSpatial_wrapper() {
         return spatial_wrapper;
     }
+
+    public String toString(){
+        return "dataSourceID:" + dataSourceID + ", timeToFilter:" + timeToFilter
+                + ", endTimeToFilter:" + endTimeToFilter + ", nelat:" + nelat + ", nelong:" + nelong
+                + ", swlat:" +  swlat + ", swlong:" + swlong + ", latUnit:" + latUnit
+                + ",lonUnit:" + lonUnit + ", spatial_wrapper:" + spatial_wrapper;
+    }
 }

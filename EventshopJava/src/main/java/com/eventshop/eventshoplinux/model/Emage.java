@@ -1,6 +1,9 @@
 
 package com.eventshop.eventshoplinux.model;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.codehaus.jackson.annotate.JsonIgnoreProperties;
 
 import java.util.List;
@@ -210,5 +213,33 @@ public class Emage {
         this.endTimeStr = endTimeStr;
     }
 
+    public JsonObject toJson() {
+        JsonObject emage = new JsonObject();
+        emage.addProperty("theme", this.theme);
+        emage.addProperty("startTime", this.startTime);
+        emage.addProperty("endTime", this.endTime);
+        emage.addProperty("startTimeStr", this.startTimeStr);
+        emage.addProperty("endTimeStr", this.endTimeStr);
+        emage.addProperty("latUnit", this.latUnit);
+        emage.addProperty("longUnit", this.longUnit);
+        emage.addProperty("swLat", this.swLat);
+        emage.addProperty("swLong", this.swLong);
+        emage.addProperty("neLat", this.neLat);
+        emage.addProperty("neLong", this.neLong);
+        emage.addProperty("row", this.getRow());
+        emage.addProperty("col", this.getCol());
+        emage.addProperty("min", this.min);
+        emage.addProperty("max", this.max);
 
+        // Create JsonArray for image
+        String gridStr = "[";
+        for (int i = 0; i < image.length; i++) {
+            gridStr = gridStr + image[i] + ",";
+        }
+        gridStr = gridStr.substring(0, gridStr.length() - 1) + "]";
+        JsonArray gridJson = (new JsonParser()).parse(gridStr).getAsJsonArray();
+        emage.add("image", gridJson);
+
+        return emage;
+    }
 }

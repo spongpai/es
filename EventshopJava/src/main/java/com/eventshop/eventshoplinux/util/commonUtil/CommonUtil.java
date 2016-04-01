@@ -649,11 +649,13 @@ public class CommonUtil {
 			for (int i = 0; i < (rows * cols); i++) {
 				double val = 0;
 				double avg = 0;
-				for (int j = 0; j < grid.get(i).size(); j++) {
-					val += (grid.get(i).get(j));
+				if(grid.get(i).size() > 0) {
+					for (int j = 0; j < grid.get(i).size(); j++) {
+						val += (grid.get(i).get(j));
+					}
+					avg = val /grid.get(i).size();
+					outputList.set(i, avg);
 				}
-				avg = val / grid.get(i).size();
-				outputList.set(i, val);
 			}
 		} else if (operation.equalsIgnoreCase("count")) {
 			for (int i = 0; i < (rows * cols); i++) {

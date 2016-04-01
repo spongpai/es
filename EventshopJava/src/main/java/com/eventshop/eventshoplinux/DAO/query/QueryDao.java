@@ -145,7 +145,7 @@ public class QueryDao extends BaseDAO {
             List<Integer> enabledQIds = null;
             if(con.isClosed())
                 con = this.connection();
-            ps = con.prepareStatement("SELECT query_id FROM Query_Master WHERE query_status = 1");
+            ps = con.prepareStatement("SELECT query_id FROM Query_Master WHERE query_status = 1 order by query_id DESC");
             rs = ps.executeQuery();
             while (rs.next()) {
 

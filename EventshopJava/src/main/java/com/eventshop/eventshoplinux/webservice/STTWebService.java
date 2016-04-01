@@ -1,8 +1,12 @@
 package com.eventshop.eventshoplinux.webservice;
 
+import akka.actor.ActorSelection;
+import akka.actor.ActorSystem;
 import com.eventshop.eventshoplinux.DAO.datasource.DataSourceDao;
 import com.eventshop.eventshoplinux.DAO.datasource.DataSourceManagementDAO;
 import com.eventshop.eventshoplinux.DAO.rule.RuleDao;
+import com.eventshop.eventshoplinux.akka.dataSource.DataSourceSchedular;
+import com.eventshop.eventshoplinux.akka.query.MainQueryActor;
 import com.eventshop.eventshoplinux.domain.common.FrameParameters;
 import com.eventshop.eventshoplinux.domain.datasource.DataSource;
 import com.eventshop.eventshoplinux.ruleEngine.ApplyRule;
@@ -13,17 +17,20 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.commons.collections.ArrayStack;
 import org.json.simple.JSONArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.*;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.ext.ExceptionMapper;
-import java.util.ArrayList;
-import java.util.DoubleSummaryStatistics;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.URL;
+import java.util.*;
 
 import java.math.BigDecimal;
 
@@ -35,6 +42,21 @@ public class STTWebService {
     private final static Logger LOGGER = LoggerFactory.getLogger(STTWebService.class);
     RuleDao ruleDAO = new RuleDao();
 
+    @Context
+    private ServletContext context;
+
+    @GET
+    @Consumes(MediaType.APPLICATION_JSON)
+    @Path("/test")
+    public String runScript() {
+        ActorSystem actorSystem = (ActorSystem) context.getAttribute("AkkaActorSystem");
+        ActorSelection mainQueryActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/mainQueryActor");
+        //mainQueryActor.tell(new MainQueryActor.EnableAndRunQuery((query.getQuery_id())), null);
+        //return "Enabled Query with ID " + query.getQuery_id();
+        LOGGER.info("run script ");
+        //queryScriptActor.tell(new DataSourceSchedular.StartDataSource((dataSource.getID())), null);
+        return "script";
+    }
 
 
     @GET
@@ -136,8 +158,27 @@ public class STTWebService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/search/{ruleid}/box/{minlatlon}/{maxlatlon}/{stime}/{etime}/{resolution}/{agg}/{themename}/emage")
+    public String searchMJsonSTTEmage(
+            @PathParam(value="ruleid") final int ruleid,
+            @PathParam(value="minlatlon") final String min,			// 24.0,-125.0
+            @PathParam(value="maxlatlon") final String max,			// 50.0,-66.0
+            @PathParam(value="stime") final String start,			// 2010-01-01T00:00:00Z
+            @PathParam(value="etime") final String end,			    // 2011-01-01T00:00:00Z
+            @PathParam(value="resolution") final String resolution,  // 0.1,0.1
+            @PathParam(value="agg") final String aggOp,             // min, max, avg, count
+            @PathParam(value="themename") final String themeName)   // e.g,. windspeed
+    {
+        return searchSTTEmage(ruleid, "point", min, max, start, end, resolution, aggOp, themeName);
+    }
+
+
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/search/{ruleid}/{sttwhere}/{minlatlon}/{maxlatlon}/{stime}/{etime}/{resolution}/{agg}/{themename}/emage")
     public String searchSTTEmage(
             @PathParam(value="ruleid") final int ruleid,
+            @PathParam(value="sttwhere") final String sttwhere,     // point or latlon
             @PathParam(value="minlatlon") final String min,			// 24.0,-125.0
             @PathParam(value="maxlatlon") final String max,			// 50.0,-66.0
             @PathParam(value="stime") final String start,			// 2010-01-01T00:00:00Z
@@ -153,17 +194,30 @@ public class STTWebService {
 
         //long sTime = 0, eTime = 0;
         if(!min.equalsIgnoreCase("null") && !min.isEmpty() && !max.equalsIgnoreCase("null") && !max.isEmpty()){
-            Rule ruleWhere = new Rule();
-            ruleWhere.setDataField("stt_where.point");
-            ruleWhere.setRuleOperator("coordinates");
-            ruleWhere.setRuleParameters(min + "," + max);
-            rules.addRule(ruleWhere);
             String[] minStr = min.split(",");
             box[0] = Double.parseDouble(minStr[0]); // min lat
             box[1] = Double.parseDouble(minStr[1]); // min lon
             String[] maxStr = max.split(",");
             box[2] = Double.parseDouble(maxStr[0]); // max lat
             box[3] = Double.parseDouble(maxStr[1]); // max lon
+
+            if(sttwhere.equalsIgnoreCase("array")) {
+                Rule ruleWhere = new Rule();
+                ruleWhere.setDataField("stt_where.point");
+                ruleWhere.setRuleOperator("coordinates");
+                ruleWhere.setRuleParameters(min + "," + max);
+                rules.addRule(ruleWhere);
+            } else if(sttwhere.equalsIgnoreCase("latlon")){
+                Rule ruleWhere1 = new Rule("stt_where.lat", ">", String.valueOf(box[0]));
+                Rule ruleWhere2 = new Rule("stt_where.lat", "<", String.valueOf(box[2]));
+                Rule ruleWhere3 = new Rule("stt_where.lon", ">", String.valueOf(box[1]));
+                Rule ruleWhere4 = new Rule("stt_where.lon", "<", String.valueOf(box[3]));
+                rules.addRule(ruleWhere1);
+                rules.addRule(ruleWhere2);
+                rules.addRule(ruleWhere3);
+                rules.addRule(ruleWhere4);
+            }
+
         }
 
 
@@ -206,7 +260,7 @@ public class STTWebService {
         fp.setSpatial_wrapper(aggOp);
 
         JsonArray emage = this.getTempEmage(result, fp, themeName);
-        LOGGER.info("result: " + emage.toString());
+        //LOGGER.info("result: " + emage.toString());
         return emage.toString();
     }
 
@@ -267,6 +321,7 @@ public class STTWebService {
     }
 
 
+
     private JsonArray getTempEmage(String STTList, FrameParameters fp, String themeName){
 
         String operation = fp.getSpatial_wrapper();
@@ -285,12 +340,18 @@ public class STTWebService {
         // add values to each cell
         for(JsonElement js: sttJsonArray){
             JsonObject sttObj = js.getAsJsonObject();
-            JsonArray coordinate = sttObj.getAsJsonObject("stt_where").getAsJsonArray("point");
-            double lat = coordinate.get(0).getAsDouble();
-            double lon = coordinate.get(1).getAsDouble();
-            double value = 1.0;
+            JsonObject sttWhere = sttObj.getAsJsonObject("stt_where");
+            double lat = 999, lon = 999, value = 1.0;
+            if(sttWhere.has("point")){
+                JsonArray coordinate = sttWhere.getAsJsonArray("point");
+                lat = coordinate.get(0).getAsDouble();
+                lon = coordinate.get(1).getAsDouble();
+            } else if(sttWhere.has("lat") && sttWhere.has("lon")){
+                lat = sttWhere.get("lat").getAsDouble();
+                lon = sttWhere.get("lon").getAsDouble();
+            }
             if(!themeName.equalsIgnoreCase("null") && !themeName.isEmpty()){
-                if(sttObj.getAsJsonObject("sttt_what").has(themeName)){
+                if(sttObj.getAsJsonObject("stt_what").has(themeName)){
                     String themeValue = sttObj.getAsJsonObject("stt_what").getAsJsonObject(themeName).get("value").getAsString();
                     try {
                         value = Double.parseDouble(themeValue);
@@ -317,9 +378,10 @@ public class STTWebService {
         for(int i = 0; i < cellList.size(); i++){
             if(cellList.get(i) != 0.0){
                 JsonObject sttList = new JsonObject();
-                sttList.add("orderedList", gridSTT.get(i).getAsJsonArray());
+                sttList.add("orderedlist", gridSTT.get(i).getAsJsonArray());
 
                 JsonObject stel = new JsonObject();
+                stel.addProperty("index", i);
                 stel.add("cell", index2rectangle(i, fp));
                 stel.addProperty(operation, cellList.get(i));
                 stel.add("values", sttList);
@@ -342,5 +404,135 @@ public class STTWebService {
 
 
 
+    }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/search/{ruleid}/{sttwhere}/{minlatlon}/{maxlatlon}/{stime}/{etime}/{resolution}/{agg}/{themename}/query")
+    public String getQ(
+            @PathParam(value="ruleid") final String ruleid,
+            @PathParam(value="sttwhere") final String sttwhere,     // point or latlon
+            @PathParam(value="minlatlon") final String min,			// 24.0,-125.0
+            @PathParam(value="maxlatlon") final String max,			// 50.0,-66.0
+            @PathParam(value="stime") final String start,			// 2010-01-01T00:00:00Z
+            @PathParam(value="etime") final String end,			    // 2011-01-01T00:00:00Z
+            @PathParam(value="resolution") final String resolution,  // 0.1,0.1
+            @PathParam(value="agg") final String aggOp,             // min, max, avg, count
+            @PathParam(value="themename") final String themeName)   // e.g,. windspeed
+    {
+        //RuleDao ruleDao = new RuleDao();
+        //Rules rules = ruleDao.getRules(ruleid);
+
+        double[] box = {-90.0, -180.0, 90, 180.0};
+
+        //long sTime = 0, eTime = 0;
+        if(!min.equalsIgnoreCase("null") && !min.isEmpty() && !max.equalsIgnoreCase("null") && !max.isEmpty()) {
+            String[] minStr = min.split(",");
+            box[0] = Double.parseDouble(minStr[0]); // min lat
+            box[1] = Double.parseDouble(minStr[1]); // min lon
+            String[] maxStr = max.split(",");
+            box[2] = Double.parseDouble(maxStr[0]); // max lat
+            box[3] = Double.parseDouble(maxStr[1]); // max lon
+
+        }
+        double latUnit = 0.1, lonUnit = 0.1;
+        if(!resolution.equalsIgnoreCase("null") && !resolution.isEmpty()){
+            String[] unit = resolution.split(",");
+            latUnit = Double.parseDouble(unit[0]);
+            lonUnit = Double.parseDouble(unit[1]);
+        }
+
+        long timeWindow = 0;
+        long syncAtMilSec = 0;
+        box = this.getStandardBox(box[0], box[1], box[2],box[3], latUnit, lonUnit);
+        LOGGER.info("stdbox" + box[0] + "," + box[1] + "," + box[2] + "," + box[3]);
+        FrameParameters fp = new FrameParameters(timeWindow, syncAtMilSec, latUnit, lonUnit, box[0], box[1], box[2],box[3]);
+
+        String basePath = "http://eventshop.ics.uci.edu:8085/eventshoplinux/";
+        String url1 = "rest/sttwebservice/search/6/latlon/"+min+"/"+max+"/"+start+"/"+end+"/"+latUnit + "%20," + lonUnit +"/avg/fill/emage";
+        String url2 = "rest/sttwebservice/search/7/latlon/"+min+"/"+max+"/"+start+"/"+end+"/"+latUnit + "%20," + lonUnit+"/avg/fill/emage";
+        String url3 = "rest/sttwebservice/search/10/latlon/"+min+"/"+max+"/"+start+"/"+end+"/"+latUnit + "%20," + lonUnit+"/avg/fill/emage";
+        String[] urls = {url1, url2, url3};
+        StringBuilder strb = new StringBuilder();
+        JsonArray emage = new JsonArray();
+
+
+
+        try {
+            JsonArray sensors = null, microreport = null, events = null;
+            JsonArray[] grid = new JsonArray[urls.length];
+            for(int i = 0; i < urls.length; i++) {
+                URL path = new URL(basePath + urls[i]);
+                BufferedReader br = new BufferedReader(new InputStreamReader(path.openStream()));
+                //log.info("CODEC: " + codec.name());
+                StringBuilder str = new StringBuilder();
+                for (String line; (line = br.readLine()) != null; ) {
+                    str.append(line);
+                }
+                JsonParser parser = new JsonParser();
+                if(i == 0)
+                    sensors = parser.parse(str.toString()).getAsJsonArray();
+                else if(i == 1)
+                    microreport = parser.parse(str.toString()).getAsJsonArray();
+                else if(i == 2)
+                    events = parser.parse(str.toString()).getAsJsonArray();
+                //grid[i] = parser.parse(str.toString()).getAsJsonArray();
+            }
+            grid[0] = sensors;
+            grid[1] = microreport;
+            grid[2] = events;
+            ArrayList<List<Double>> gridArr = new ArrayList<List<Double>>();
+            Map<Integer, List<Double>> gridMap = new HashMap<Integer, List<Double>>();
+            for(int i = 0; i < grid.length; i++){
+                for(int j = 0; j < grid[i].size(); j++){
+                    JsonObject cell = grid[i].get(j).getAsJsonObject();
+                    int index = cell.get("index").getAsInt();
+                    double value = cell.get("avg").getAsDouble();
+                    if(gridMap.containsKey(index)){
+                        gridMap.get(index).add(value);
+                    } else{
+                        List<Double> temp = new ArrayList<Double>();
+                        temp.add(value);
+                        gridMap.put(index, temp);
+                    }
+                }
+            }
+            Iterator<Integer> it =  gridMap.keySet().iterator();
+            ArrayList<Double> cellList = new ArrayList<Double>();
+            int length = fp.getNumOfRows()*fp.getNumOfColumns();
+            for(int i = 0; i < length; i++){
+                cellList.add(0.0);
+            }
+            while(it.hasNext()){
+                int index = it.next();
+                List<Double> list = gridMap.get(index);
+                double total = 0.0, count = 0.0, avg = 0.0;
+                for(int i = 0; i < list.size(); i++){
+                    total = total + list.get(i);
+                    count = count + 1;
+                }
+                if(count > 0)
+                    avg = total/count;
+                cellList.add(index, avg);
+                strb.append(index + "," + gridMap.get(index)+ ","+ avg);
+                System.out.println(index + "," + gridMap.get(index)+ ","+ avg);
+            }
+
+            for(int i = 0; i < cellList.size(); i++){
+                if(cellList.get(i) != 0.0){
+                    JsonObject sttList = new JsonObject();
+
+                    JsonObject stel = new JsonObject();
+                    stel.addProperty("index", i);
+                    stel.add("cell", index2rectangle(i, fp));
+                    stel.addProperty("avg", cellList.get(i));
+                    stel.add("values", sttList);
+                    emage.add(stel);
+                }
+            }
+        } catch (Exception e){
+            e.printStackTrace();
+        }
+        return emage.toString();
     }
 }

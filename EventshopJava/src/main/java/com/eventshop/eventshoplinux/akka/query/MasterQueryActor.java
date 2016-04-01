@@ -46,13 +46,30 @@ public class MasterQueryActor extends UntypedConsumerActor {
     private final ActorRef temporalPatternQueryActor;
     private final ActorRef alertRouteProducer;
 
-    private final FiniteDuration duration = Duration.create(100, TimeUnit.SECONDS);
+    private final FiniteDuration duration = Duration.create(1000, TimeUnit.SECONDS);
     private final Timeout timeout = Timeout.durationToTimeout(duration);
 
     MasterQueryActor(ActorRef filterQueryActor, ActorRef groupingQueryActor, ActorRef spatialCharQueryActor
             , ActorRef spatialPatternQyertActor, ActorRef aggregationQueryActor, ActorRef temporalCharQueryActor
             , ActorRef mongoQueryRouteProducerActor, ActorRef temporalPatternQueryActor, ActorRef ruleRouteProducerActor
             , ActorRef alertRouteProducer) {
+        this.filterQueryActor = filterQueryActor;
+        this.groupingQueryActor = groupingQueryActor;
+        this.spatialCharQueryActor = spatialCharQueryActor;
+        this.spatialPatternQyertActor = spatialPatternQyertActor;
+        this.aggregationQueryActor = aggregationQueryActor;
+        this.temporalCharQueryActor = temporalCharQueryActor;
+        this.mongoQueryRouteProducerActor = mongoQueryRouteProducerActor;
+        this.temporalPatternQueryActor = mongoQueryRouteProducerActor;
+        this.ruleRouteProducerActor = ruleRouteProducerActor;
+        this.alertRouteProducer = alertRouteProducer;
+
+    }
+
+    MasterQueryActor(ActorRef filterQueryActor, ActorRef groupingQueryActor, ActorRef spatialCharQueryActor
+            , ActorRef spatialPatternQyertActor, ActorRef aggregationQueryActor, ActorRef temporalCharQueryActor
+            , ActorRef mongoQueryRouteProducerActor, ActorRef temporalPatternQueryActor, ActorRef scriptQueryActor
+            , ActorRef ruleRouteProducerActor, ActorRef alertRouteProducer) {
         this.filterQueryActor = filterQueryActor;
         this.groupingQueryActor = groupingQueryActor;
         this.spatialCharQueryActor = spatialCharQueryActor;
@@ -77,6 +94,21 @@ public class MasterQueryActor extends UntypedConsumerActor {
                 return new MasterQueryActor(filterQueryActor
                         , groupingQueryActor, spatialCharQueryActor, spatialPatternQueryActor, aggregationQueryActor
                         , temporalCharQueryActor, mongoQueryRouteProducerActor, temporalPatternQueryActor, ruleRouteProducerActor, alertRouteProducer);
+            }
+        });
+    }
+
+    public static Props props(final ActorRef filterQueryActor, final ActorRef groupingQueryActor
+            , final ActorRef spatialCharQueryActor, final ActorRef spatialPatternQueryActor
+            , final ActorRef aggregationQueryActor, final ActorRef temporalCharQueryActor
+            , ActorRef mongoQueryRouteProducerActor, final ActorRef temporalPatternQueryActor, final ActorRef scriptQueryActor
+            , ActorRef ruleRouteProducerActor, ActorRef alertRouteProducer) {
+        return Props.create(new Creator<MasterQueryActor>() {
+            @Override
+            public MasterQueryActor create() throws Exception {
+                return new MasterQueryActor(filterQueryActor
+                        , groupingQueryActor, spatialCharQueryActor, spatialPatternQueryActor, aggregationQueryActor
+                        , temporalCharQueryActor, mongoQueryRouteProducerActor, temporalPatternQueryActor, scriptQueryActor, ruleRouteProducerActor, alertRouteProducer);
             }
         });
     }
@@ -180,7 +212,7 @@ public class MasterQueryActor extends UntypedConsumerActor {
                         case "TPMATCHING" : {
                             Future<Object> future = Patterns.ask(filterQueryActor, new QueryActorMessage(masterQueryID, query, emageList), timeout);
                             resultEmage = (Emage) Await.result(future, duration);
-                            LOGGER.info("Result emage theme from Temporal Pattern : " + resultEmage.getImage());
+                            LOGGER.info("Result emage theme from Temporal Pattern : " + resultEmage.getTheme());
                             break;
                         }
                         case "TPCHAR": {
@@ -190,13 +222,14 @@ public class MasterQueryActor extends UntypedConsumerActor {
                             break;
                         }
                     }
-
+                    System.out.println("result eamge: " + resultEmage.getTheme() + "\n-----------------");
                     emageMap.put("q" + (i + 1), resultEmage);
                 }
             }
         }
         // Once emage is created, create the file in the list. It will be the last emage created
         Emage finalEmage = emageMap.get("q" + size);
+        //LOGGER.info("write emage result to file: " + finalEmage.toJson().toString());
         if (finalEmage.getColors() == null) {
             finalEmage.setColors(new ArrayList<>());
         }
@@ -244,13 +277,29 @@ public class MasterQueryActor extends UntypedConsumerActor {
             String spatial_wrapper = query.get("spatial_wrapper").getAsString();
             MongoQueryMessage mongoQueryMessage = new MongoQueryMessage(Integer.parseInt(id), timeToCheck, endTimeToCheck
                     , neLat, neLon, swLat, swLon, latUnit, lonUnit, spatial_wrapper);
-
+            System.out.println("mongoQueryMessage: " + mongoQueryMessage.toString());
             Future<Object> future = Patterns.ask(ruleRouteProducerActor, mongoQueryMessage, timeout);
 
             CamelMessage camelMessage = (CamelMessage) Await.result(future, duration);
+            Object body = camelMessage.body();
             Emage emage = camelMessage.getBodyAs(Emage.class, getCamelContext());
-
+            System.out.println("---- emage ---- " + emage.toString());
             return emage;
+            /*
+            if(body.getClass().getName().contains("Emage")){
+                Emage emage = camelMessage.getBodyAs(Emage.class, getCamelContext());
+                System.out.println("---- emage ---- " + emage.toString());
+                return emage;
+            } else if(body.getClass().getName().contains("ArrayList")){
+                ArrayList emage =  (ArrayList) body;
+                System.out.println("---- array list ---- " + emage.size());
+            } else{
+                System.out.println("---- invalid class ---- " + body.getClass().getName());
+                return null;
+            }
+            */
+
+
 
 
         }

@@ -43,13 +43,14 @@ public class MongoRoute extends RouteBuilder {
     @Override
     public void configure() throws Exception {
 
+
         from("direct:commonQueryMongo")
                 .process(new Processor() {
                     @Override
                     public void process(Exchange exchange) throws Exception {
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         DataSource dataSource = exchange.getIn().getHeader("datasource", DataSource.class);
-                        LOGGER.info(dataSource.toString());
+                        LOGGER.info("commonQueryMongo\n" + dataSource.toString());
 
 
                         String timeType = dataSource.getInitParam().getTimeType();
@@ -63,6 +64,7 @@ public class MongoRoute extends RouteBuilder {
 
 
                         long timeWindow = dataSource.getInitParam().getTimeWindow();
+                        long syncAt = dataSource.getInitParam().getSyncAtMilSec();
                         long endTimeToCheck = 0;
                         long timeToCheck = 0;
 
@@ -89,10 +91,13 @@ public class MongoRoute extends RouteBuilder {
                         exchange.getOut().setHeader("latUnit", latUnit);
                         exchange.getOut().setHeader("longUnit", longUnit);
                         exchange.getOut().setHeader("spatial_wrapper", sptlWrpr);
+                        exchange.getOut().setHeader("timeWindow", timeWindow);
+                        exchange.getOut().setHeader("syncAt", syncAt);
                     }
                 })
                 .to("direct:commonQuery")
         ;
+
 
         from("direct:commonQuery")
                 .process(new Processor() {
@@ -124,7 +129,12 @@ public class MongoRoute extends RouteBuilder {
 //                        query = query.replace("$swlat", "" + startTimeToCheck);
 //                        query = query.replace("$swlat", "" + endTimeToCheck);
 
-                        String query = "{ $and: [ {loc: { $geoWithin: { $box:  [ [ " + swlong + ", " +
+                        //String query = "{ $and: [ {loc: { $geoWithin: { $box:  [ [ " + swlong + ", " +
+                        //        +swlat + "], [ " + nelong + ", "
+                        //        + nelat + " ] ]}}}, {timestamp : { $gt : " + (startTimeToCheck) + ", $lt : " + (endTimeToCheck) + " }} ] }";
+
+
+                        String query = "{ $and: [ {stt_where: { $geoWithin: { $box:  [ [ " + swlong + ", " +
                                 +swlat + "], [ " + nelong + ", "
                                 + nelat + " ] ]}}}, {timestamp : { $gt : " + (startTimeToCheck) + ", $lt : " + (endTimeToCheck) + " }} ] }";
 
@@ -151,13 +161,14 @@ public class MongoRoute extends RouteBuilder {
 
                         exchange.getOut().setBody(query);
                         LOGGER.info(mongoPath);
-                        LOGGER.info("Query Start TIme:" + System.currentTimeMillis());
+                        LOGGER.info("commonQuery Query Start TIme:" + System.currentTimeMillis());
 
                     }
                 })
                 .convertBodyTo(String.class)
                 .recipientList(header("mPath"))
                 .to("direct:applySpatialWrapper");
+
 
         from("direct:applyRule")
                 .process(new Processor() {
@@ -235,7 +246,7 @@ public class MongoRoute extends RouteBuilder {
                         bw.close();
 
 
-                        System.out.println("rule0:"+result);
+                        //System.out.println("rule0:"+result);
                         exchange.getOut().setBody(String.valueOf(result));
                         exchange.getOut().setHeader("createEmageFile", false);
                     }
@@ -248,8 +259,7 @@ public class MongoRoute extends RouteBuilder {
                     @Override
                     public void process(Exchange exchange) throws Exception {
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
-                        LOGGER.info("Query End Time:");
-                        LOGGER.info("{}", System.currentTimeMillis());
+                        LOGGER.info("Query End Time:" + System.currentTimeMillis());
                         LOGGER.info("{}", new Date());
                         final String body = exchange.getIn().getBody(String.class);
                         System.out.println("STT:"+body);
@@ -273,6 +283,27 @@ public class MongoRoute extends RouteBuilder {
                                 } else if(aObj.has("where")){
                                     loc.setLat(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("latitude"));
                                     loc.setLon(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude"));
+                                } else if(aObj.has("stt_where")){
+                                    if(aObj.getJSONObject("stt_where").has("point")) {                   // stt_where: {point: [lat, lon]}
+                                        JSONArray point = aObj.getJSONObject("stt_where").getJSONArray("point");
+                                        loc.setLat(point.getDouble(0));
+                                        loc.setLon(point.getDouble(1));
+                                    }
+                                    else if(aObj.getJSONObject("stt_where").has("rectangle")){
+                                        // stt_where: {rectangle: [{point:[lat, lon]}, {point:[lat, lon]}]}
+                                        JSONArray rec = aObj.getJSONObject("stt_where").getJSONArray("rectangle");
+                                        JSONArray minPoint = rec.getJSONObject(0).getJSONArray("point");
+                                        JSONArray maxPoint = rec.getJSONObject(1).getJSONArray("point");
+                                        double minLat = minPoint.getDouble(0);
+                                        double minLon = minPoint.getDouble(1);
+                                        double maxLat = maxPoint.getDouble(0);
+                                        double maxLon = maxPoint.getDouble(1);
+                                        loc.setLat((minLat + maxLat)/2.0);      // get center point
+                                        loc.setLon((minLon + maxLon)/2.0);      // get center point
+                                    } else{
+                                        loc.setLat(aObj.getJSONObject("stt_where").getDouble("lat"));   // stt_where: {lat: double, lon: double}
+                                        loc.setLon(aObj.getJSONObject("stt_where").getDouble("lon"));
+                                    }
                                 }
 
                                 mongoResponse.setLoc(loc);
@@ -398,7 +429,8 @@ public class MongoRoute extends RouteBuilder {
                                     for (int j = 0; j < grid.get(i).size(); j++) {
                                         val += (grid.get(i).get(j));
                                     }
-                                    avg = val / grid.get(i).size();
+                                    if(grid.get(i).size() >0)
+                                        avg = val / grid.get(i).size();
                                     outputList.add(avg);
                                 }
                             } else if (operation.equalsIgnoreCase("count")) {
@@ -425,6 +457,16 @@ public class MongoRoute extends RouteBuilder {
                         }
                         exchange.getOut().setHeader("numOfRows", rows);
                         exchange.getOut().setHeader("numOfCols", cols);
+                        long endTimeToCheck = exchange.getIn().getHeader("endTimeToCheck", Long.class);
+                        long startTimeToCheck = exchange.getIn(
+
+                        ).getHeader("timeToCheck", Long.class);
+                        exchange.getOut().setHeader("timeWindow", endTimeToCheck - startTimeToCheck);
+                        System.out.println("timeWindowwwww: " + (endTimeToCheck - startTimeToCheck));
+
+                        //long timeWindow = exchange.getIn().getHeader("timeWindow", Long.class);
+                        //System.out.println("timeWindowwww: " + timeWindow);
+
                         exchange.getOut().setBody(outputList, List.class);
                         LOGGER.info("End Time:");
                         LOGGER.info("{}", System.currentTimeMillis());
