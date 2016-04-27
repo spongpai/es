@@ -1,0 +1,282 @@
+
+<!-- Bootstrap & jQuery Styles -->
+<link href="http://ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/themes/base/jquery-ui.css" rel="stylesheet" type="text/css"/>
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet" type="text/css" />
+<link rel="stylesheet" href="css/searchableOptionList.css" />
+<link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.10.0/vis.min.css" rel="stylesheet" />
+<link type="text/css" rel="stylesheet" href="js/libs/galleria/themes/classic/galleria.classic.css" />
+<!-- Bootstrap Javascript -->
+<script src="http://maps.googleapis.com/maps/api/js?sensor=false&libraries=places,drawing,geometry,visualization" type="text/javascript"></script>
+<script src="http://code.jquery.com/jquery.min.js"></script>
+<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.10.3/jquery-ui.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.10.0/vis.min.js"></script>
+
+<script src="js/my-js/themelist.js"></script>
+<script src="js/my-js/vizKrumbs.js"></script>
+<script src="js/libs/multiselect/sol.js"></script>
+<script src="js/libs/utility/rainbowvis.js"></script>
+<script src="js/libs/galleria/galleria-1.4.2.min.js"></script>
+<style type="text/css">
+
+    .tab-content {
+    clear: none;
+    }
+
+    #map_canvas img {
+    max-width: none;
+    }
+
+    .panel-primary {
+    border-color: #273f93;
+    }
+
+    .panel-primary .panel-heading {
+    color: white;
+    background-color: #273f93;
+    border-color: #273f93;
+    }
+
+    #start-date, #end-date {
+    position: relative; z-index:10;
+    }
+
+    #keyword-textbox, #location-text-box {
+    width: 100%;
+    }
+
+    #open-popup {padding:20px}
+    .white-popup {
+    position: relative;
+    background: #FFF;
+    padding: 40px;
+    width: auto;
+    max-width: 200px;
+    margin: 20px auto;
+    text-align: center;
+    }
+
+
+</style>
+<script>
+      $('#open-popup').magnificPopup({
+          items: [
+              {
+                  src: 'http://upload.wikimedia.org/wikipedia/commons/thumb/6/64/Peter_%26_Paul_fortress_in_SPB_03.jpg/800px-Peter_%26_Paul_fortress_in_SPB_03.jpg',
+                  title: 'Peter & Paul fortress in SPB'
+              },
+              {
+                  src: 'http://vimeo.com/123123',
+                  type: 'iframe' // this overrides default type
+              },
+              {
+                  src: $('<div class="white-popup">Dynamically created element</div>'), // Dynamically created element
+                  type: 'inline'
+              },
+              {
+                  src: '<div class="white-popup">Popup from HTML string</div>', // HTML string
+                  type: 'inline'
+              },
+              {
+                  src: '#my-popup', // CSS selector of an element on page that should be used as a popup
+                  type: 'inline'
+              }
+          ],
+          gallery: {
+              enabled: true
+          },
+          type: 'image' // this is a default type
+      });
+  </script>
+<style>
+    .galleria1{ width: 700px; height: 400px; background: #000 }
+</style>
+<body>
+
+
+<div id="dialog" >
+    <div id="photos" class="galleria"></div>
+    <!--      <img src="imgs/grouping.png">
+          <img src="imgs/aggregation.png">
+          <img src="imgs/filter.png">
+          -->
+</div>
+<script>
+      //Galleria.loadTheme('js/libs/galleria/themes/classic/galleria.classic.min.js');
+      //Galleria.run('.galleria');
+  </script>
+<!--
+  <button id="open-popup">Open popup</button>
+
+  <div id="my-popup" class="mfp-hide white-popup">
+      Inline popup
+  </div>
+-->
+
+
+<div class="container" style="margin-top: 30px">
+    <!-- Query Builder Row -->
+    <div class="row">
+        <div class="col-sm-3">
+            <ul class="list-group">
+
+                <!-- Search Dataset -->
+                <li class="list-group-item">
+                    <!--  <h4 class="list-gorup-item-heading">Dataset</h4>-->
+                    Dataset:
+                    <select id="dsname">
+                    </select>
+                </li>
+
+                <li class="list-group-item">
+                    Spatial Wrapper:
+                    <select id="spagg" name="spagg" >
+                        <option value="count">count</option>
+                        <option value="avg">average</option>
+                        <option value="sum">summation</option>
+                    </select>
+                </li>
+                <!-- Location -->
+                <li class="list-group-item" style="display:none">
+                    <!--  <h4 class="list-group-item-heading">Location</h4>-->
+                    Location:
+                    <input class="textbox" type="text" id="location-text-box">
+                    <div class="btn-group" data-toggle="buttons">
+                        <label id="location-label" class="btn btn-default btn-xs">
+                            <input type="radio" id="location-button "> Location
+                        </label>
+                        <label id="selection-label" class="btn btn-default btn-xs">
+                            <input type="radio" id="selection-button"> Selection
+                        </label>
+                    </div>
+                </li>
+
+                <!-- Date Range -->
+                <li class="list-group-item" style="display:none">
+                    <h4 class="list-group-item-heading">Limit Date Range</h4>
+                    <input type="text" class="textbox" id="start-date"><span class="badge">Start Date</span><br/>
+                    <input type="text" class="textbox" id="end-date"><span class="badge">End Date</span>
+                </li>
+
+                <!-- Results Resolution -->
+                <li class="list-group-item">
+                    Grid Resolution
+
+                    <div class="grid-slider" id="grid-lat-slider"></div>
+                    <div class="control-label">Latitude: <span id="gridlat">0.1</span></div>
+
+                    <div class="grid-slider" id="grid-lng-slider"></div>
+                    <div class="control-label">Longitude: <span id="gridlng">0.1</span></div>
+                </li>
+
+                <!-- Rule ID -->
+                <li class="list-group-item">
+                    RuleID
+                    <input type="text" id="ruleid">
+                </li>
+
+                <!-- Search Theme -->
+                <li class="list-group-item" style="display: none;">
+                    <!--  <h4 class="list-group-item-heading">Theme</h4>-->
+                    Theme
+                    <select id="theme-select" name="character"  multiple="multiple">
+                        <!-- <option value="a">Select All A</option>
+                          <option value="b">Select All B</option>
+                           <option value="c">Select All C</option> -->
+                    </select>
+
+                    <script type="text/javascript">
+                        $(function() {
+                            // initialize sol
+                            $('#theme-select').searchableOptionList({
+                              data: kthemelist,
+                              maxHeight: '250px',
+                              showSelectionBelowList: true
+                            });
+                        });
+                    </script>
+
+                </li>
+
+                <!-- Submission Buttons -->
+                <li class="list-group-item"  style="display:none">
+                    <button class="btn btn-primary btn-xs" type="button" id="submit-button">Submit</button>
+                    <button class="btn btn-primary btn-xs" type="button" id="clear-button">Clear</button>
+                </li>
+            </ul>
+        </div>
+        <div class="col-sm-8">
+            <div id="visualization"></div>
+            <div style="height:100px">
+                <!-- Container to hold success/error messages -->
+                <div id="popup_id" style="display:none;text-size:large;text-weigth:bold">Processing your request................</div>
+
+                <div id="report-message"></div>
+                <!-- Legend Container -->
+                <div id="rainbow-legend-container" class="container well" style="display:none;">
+                    <div class="row">
+                        <div class="col-md-4 col-md-offset-4" style="text-align: center;text-size: 10px"># STT Points</div>
+                    </div>
+
+                    <div class="row">
+                        <div id="legend-min" class="col-md-2 col-md-offset-1" style="text-align:right;"></div>
+                        <div id="legend-gradient" class="col-md-5" style="text-align: center;"></div>
+                        <div id="legend-max" class="col-md-2"></div>
+                    </div>
+                </div><!-- End Legend Container --></div>
+
+        </div>
+    </div> <!-- End Query Builder Row -->
+
+    <!-- MAP Dispaly Row -->
+    <div class="row">
+        <!-- Map Container -->
+        <div class="col-sm-6">
+            <div class="well" id="right-col">
+                <div id="map_canvas" style="max-width: 100%; height: auto;"></div>
+            </div>
+        </div><!-- End Right Column -->
+        <div class="col-sm-5">
+            <!-- E-mage query -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">E-mage Query</h4>
+                </div>
+                <div class="panel-body">
+                    <div id="emage-query" style="white-space:pre-wrap"></div>
+                </div>
+            </div>
+            <!-- E-mage output -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">E-mage Output</h4>
+                </div>
+                <div class="panel-body">
+                    <div id="emage-output" style="white-space:pre-wrap"></div>
+                </div>
+            </div>
+        </div>
+    </div>	<!-- End MAP Dispaly Row -->
+
+    <!-- E-mage Info Row -->
+    <div class="row" id="emage-well">
+        <!-- Left column holds query-->
+        <div class="col-sm-10">
+            <div class="row">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <h4 class="panel-title">Query Duration</h4>
+                    </div>
+                    <div class="panel-body">
+                        <div id="emage-duration"></div>
+                    </div>
+                </div>
+            </div>
+        </div><!-- End left column -->
+
+        <!-- Right column holds output -->
+        <div class="col-sm-7">
+
+        </div><!-- End right column -->
+    </div><!-- End E-mage row -->
+</div> <!--  End Container -->
+</body>
