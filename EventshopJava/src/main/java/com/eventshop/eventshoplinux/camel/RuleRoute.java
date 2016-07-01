@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -73,7 +74,7 @@ public class RuleRoute extends RouteBuilder {
                         JSONObject jsonObject = new JSONObject("{ \"list\" : " + body + "}");
                         JSONArray jsonArray = jsonObject.getJSONArray("list");
                         LOGGER.info("******************");
-                        System.out.println(jsonArray.toString());
+                        System.out.println("customEmage: " + jsonArray.toString());
                         List<String> sttList = new ArrayList<String>();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             JSONObject jsonObj = jsonArray.getJSONObject(i);
@@ -94,49 +95,73 @@ public class RuleRoute extends RouteBuilder {
 //                                }
 //                            }
                             ELocation eLocation = null;
-                            JSONArray jsonArray1 = jsonObj.getJSONArray("data");
-                            JSONObject jsonObj1 = jsonArray1.getJSONObject(0);
-
-                            System.out.println(jsonObj1.has("media"));
-
-                            JSONArray jsonArray2 = jsonObj1.getJSONArray("media");
-                            JSONObject jsonObj2 = jsonArray2.getJSONObject(0);
-
-                            System.out.println(jsonObj2.has("where"));
-
-
 
                             if (jsonObj.has("loc")) {
                                 Double lat = jsonObj.getJSONObject("loc").getDouble("lat");
                                 Double lon = jsonObj.getJSONObject("loc").getDouble("lon");
                                 eLocation = new ELocation(lon, lat);
-
-
-                            }else if(jsonObj2.has("where")){
-                                Double lat = jsonObj2.getJSONObject("where").getJSONObject("geo_location").getDouble("latitude");
-                                Double lon = jsonObj2.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude");
-                                eLocation = new ELocation(lon,lat);
-                                System.out.println("Where.GeoLoc: "+eLocation.toString());
                             } else if(jsonObj.has("stt_where")){
-                                JSONObject where = jsonObj.getJSONObject("stt_where");
-                                if(where.has("point")){
-                                    Double lat = where.getJSONArray("point").getDouble(0);
-                                    Double lon = where.getJSONArray("point").getDouble(1);
-                                    eLocation = new ELocation(lon, lat);
-
-                                } else if(where.has("rectangle")){
-
+                                if(jsonObj.getJSONObject("stt_where").has("point")) {                   // stt_where: {point: [lat, lon]}
+                                    JSONArray point = jsonObj.getJSONObject("stt_where").getJSONArray("point");
+                                    eLocation = new ELocation(point.getDouble(1), point.getDouble(0));
+                                } else if(jsonObj.getJSONObject("stt_where").has("rectangle")){
+                                    // stt_where: {rectangle: [{point:[lat, lon]}, {point:[lat, lon]}]}
+                                    JSONArray rec = jsonObj.getJSONObject("stt_where").getJSONArray("rectangle");
+                                    JSONArray minPoint = rec.getJSONObject(0).getJSONArray("point");
+                                    JSONArray maxPoint = rec.getJSONObject(1).getJSONArray("point");
+                                    double minLat = minPoint.getDouble(0);
+                                    double minLon = minPoint.getDouble(1);
+                                    double maxLat = maxPoint.getDouble(0);
+                                    double maxLon = maxPoint.getDouble(1);
+                                    eLocation = new ELocation((minLon + maxLon)/2.0, (minLat + maxLat)/2.0);    // get center point
+                                } else{
+                                    Double lat = jsonObj.getJSONObject("stt_where").getDouble("lat");   // stt_where: {lat: double, lon: double}
+                                    Double lon = jsonObj.getJSONObject("stt_where").getDouble("lon");
+                                    eLocation = new ELocation(lon,lat);
                                 }
-
                             }
+
+                            double value = 1.0;
+                            if(jsonObj.has("stt_what")){
+                                JSONObject what = jsonObj.getJSONObject("stt_what");
+                                Iterator<?> keys = what.keys();
+
+                                while( keys.hasNext() ) {
+                                    String key = (String)keys.next();
+                                    if ( what.get(key) instanceof JSONObject ) {
+                                        JSONObject theme = what.getJSONObject(key);
+                                        if(theme.has("theme_type")){
+                                            // to do for other theme type besides double
+                                        }
+                                        value = theme.getDouble("value");    // assume that the result from rule engine only has on theme!
+                                        LOGGER.debug("themeeee value: " + value);
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // only one date time should be returned from the rule engine
+                            long time = System.currentTimeMillis();
+                            if(jsonObject.has("timestamp")){
+                                time = jsonObject.getLong("timestamp");
+                            } else if(jsonObject.has("stt_when")){
+                                time = jsonObject.getJSONObject("stt_when").getLong("datetime");
+                            }
+
+
                             STT stt = new STT();
 //                            stt.set_id(jsonObj.getLong("_id"));
-                            stt.setValue(1);
+                            stt.setValue(value);
                             stt.setLoc(eLocation);
+                            stt.setTimestamp(time);
                             sttList.add(stt.toString());
                         }
                         System.out.println("STT List:" + sttList);
                         exchange.getOut().setBody(sttList);
+                        //long endTimeToCheck = exchange.getIn().getHeader("endTimeToCheck", Long.class);
+                        //long startTimeToCheck = exchange.getIn().getHeader("timeToCheck", Long.class);
+                        //exchange.getOut().setHeader("timeWindow", endTimeToCheck - startTimeToCheck);
+
 
 //                         List<String> resultList = exchange.getIn().getBody(ArrayList.class);
 //                        for(String result: resultList){

@@ -28,7 +28,7 @@ public class Constant {
 	public static final String GET_ALL_ENABLED_ALERTS = "SELECT * FROM Alerts WHERE alert_status = 1";
 	public static final String GET_ALL_ENABLED_ALERTS_FOR_ID = "SELECT * FROM Alerts WHERE alert_status = 1 AND (alert_src = ? OR safe_src = ?)";
 
-	public static final String SELECT_ALL_RULE_ID_QRY= "SELECT RuleID,source_id from RuleQueryMaster";
+	public static final String SELECT_ALL_RULE_ID_QRY= "SELECT RuleID,source_id from RuleQueryMaster order by RuleID DESC";
 	public static final String DS_STAT_QRY= "SELECT dsmaster_status FROM Datasource_Master WHERE dsmaster_id = ?";
 	public static final String QUERY_STAT_QRY= "SELECT query_status FROM Query_Master WHERE query_id = ?";
 	public static final String GET_ALERT_DTLS = "SELECT alert_type, alert_name, alert_theme, alert_src, alert_src_min, alert_src_max, safe_src, safe_src_min, safe_src_max, alert_status, resultEndpoint, alert_message, boundingbox, lat, lng, radius   FROM Alerts WHERE alert_id = ?";
@@ -56,7 +56,7 @@ public class Constant {
 	public static final String SELECT_USERMSTR_QRY = "SELECT um.user_id,um.user_fullname,um.user_email,um.user_authen_key,rm.role_type,um.user_status,um.user_last_accessd,um.user_role_id FROM tbl_User_Master um,tbl_Role_Master rm WHERE um.user_role_id=rm.role_id";
 	public static final String TEMPDIR = "tempDir";
 	public static final String SELECT_QRYMSTR = "SELECT query_id,query_name,query_status FROM Query_Master WHERE query_creator_id=?";
-	public static final String SLCT_QRYMSTR_QYNAMES_QRY = "SELECT query_name FROM Query_Master WHERE query_creator_id=?";
+	public static final String SLCT_QRYMSTR_QYNAMES_QRY = "SELECT query_name FROM Query_Master WHERE query_creator_id=? order by query_id DESC";
 	public static final String UPDATE_USERMSTR_STATUS_QRY = "UPDATE tbl_User_Master SET user_status=? WHERE user_id=?";
 	public static final String NO_DATA = "No data provided";
 	public static final String SUCCESS = "success";
@@ -83,10 +83,10 @@ public class Constant {
 	// "DELETE FROM Datasource_Resolution WHERE dsmaster_Id=?";
 	// public static String DEL_DSRES_QRY =
 	// "DELETE FROM "+tablName+" WHERE "+colName+"=?";
-	public static final String SELECT_QRYMSTR_ADMIN_QRY = "SELECT query_id,query_name,boundingbox,query_status FROM Query_Master WHERE qid_parent IS NULL";
+	public static final String SELECT_QRYMSTR_ADMIN_QRY = "SELECT query_id,query_name,boundingbox,query_status FROM Query_Master WHERE qid_parent IS NULL order by query_id DESC";
 	public static final String SELECT_ENABLED_QUERIES_WITH_DS_ID
-			= "SELECT query_id,query_creator_id,query_name,query_desc,query_esql,time_window,latitude_unit,longitude_unit,boundingbox,query_status, qid_parent FROM Query_Master WHERE query_status=? and linked_ds LIKE ?";
-	public static final String SELECT_QRYMSTR_ALL = "SELECT * FROM Query_Master";
+			= "SELECT query_id,query_creator_id,query_name,query_desc,query_esql,time_window,latitude_unit,longitude_unit,boundingbox,query_status, qid_parent FROM Query_Master WHERE query_status=? and linked_ds LIKE ? order by query_id DESC";
+	public static final String SELECT_QRYMSTR_ALL = "SELECT * FROM Query_Master order by query_id DESC";
 
 	public static final String ENABLE_QUERY = "UPDATE Query_Master SET query_status = 1 WHERE query_id = ?";
 	public static final String DISABLE_QUERY = "UPDATE Query_Master SET query_status = 0 WHERE query_id = ?";
@@ -128,8 +128,8 @@ public class Constant {
 			+ "boundingbox=?, syncTime=?, timeType=? , dsQuery=?, genEmage=? WHERE dsmaster_id=? AND resolution_type=?";
 	public static final String SELECT_DSMSTR_ALL_QRY = "SELECT dm.dsmaster_title,dm.dsmaster_theme,dm.dsmaster_url,dm.dsmaster_format,dm.dsmaster_creator,dm.dsmaster_created_date,dm.dsmaster_updated_date,dm.dsmaster_syntax"
 			+ " FROM Datasource_Master dm  WHERE dm.dsmaster_id=?";
-	public static final String SELECT_RULE_QRY= "SELECT * from RuleQueryMaster where RuleID=?";
-	public static final String SELECT_ALL_RULE_QRY = "SELECT * from RuleQueryMaster where user_id=?";
+	public static final String SELECT_RULE_QRY= "SELECT * from RuleQueryMaster where RuleID=? ";
+	public static final String SELECT_ALL_RULE_QRY = "SELECT * from RuleQueryMaster where user_id=? order by RuleID DESC";
 	public static final String SELECT_ALL_RULEs_OFDS_QRY = "select * from RuleQueryMaster where source_id = ?";
 	public static final String SELECT_RULE_DS_QRY= "select dm.dsmaster_id, dm.dsmaster_title, rm.RuleID, rm.Rule_Name from Datasource_Master dm, RuleQueryMaster rm  where dm.dsmaster_id = rm.source_id and  dsmaster_creator = ? and rm.source_type='ds'";
 
@@ -176,9 +176,9 @@ public class Constant {
 	public static final String LATITUDE_UNIT = "latitude_unit";
 	public static final String LONGITUDE_UNIT = "longitude_unit";
 	public static final String BOUNDINGBOX = "boundingbox";
-	public static final String SELECT_DSMSR_QRY = "SELECT dm.dsmaster_id, dm.dsmaster_title,dm.dsmaster_creator,dm.dsmaster_url, dm.dsmaster_access FROM Datasource_Master dm";
-	public static final String SLT_DSMSR_QRY_BASEON_ID_QRY = " WHERE dsmaster_creator=? or dsmaster_access = \"public\"";
-	public static final String SELECT_QRMSTR_QRY = "SELECT query_id,query_name,query_status FROM Query_Master WHERE qid_parent IS NULL";
+	public static final String SELECT_DSMSR_QRY = "SELECT dm.dsmaster_id, dm.dsmaster_title,dm.dsmaster_creator,dm.dsmaster_url, dm.dsmaster_access FROM Datasource_Master dm ";
+	public static final String SLT_DSMSR_QRY_BASEON_ID_QRY = " WHERE dsmaster_creator=? or dsmaster_access = \"public\" ORDER BY dm.dsmaster_id DESC";
+	public static final String SELECT_QRMSTR_QRY = "SELECT query_id,query_name,query_status FROM Query_Master WHERE qid_parent IS NULL order by query_id DESC";
 	// OR query_creator_id='' removed this, nt sure why it was put --sanjukta
 	public static final String SLT_QRMSTR_BASEON_ID_QRY = " AND query_creator_id=? ";
 	public static final String DATE_CONVERTION = "yyyy-MM-dd HH:mm:ss";

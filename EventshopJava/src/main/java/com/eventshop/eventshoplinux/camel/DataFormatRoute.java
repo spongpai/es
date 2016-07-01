@@ -260,7 +260,8 @@ public class DataFormatRoute extends RouteBuilder {
                         exchange.getOut().setBody(exchange.getIn().getBody());
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         JsonParser parser = new JsonParser();
-                        JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue()).getAsJsonObject();
+                        System.out.println("***********************************************************\n" + ds.getWrapper().getWrprKeyValue());
+                        JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue().trim()).getAsJsonObject();
                         boolean isDirectLoad=false;
                         if (jObj.has("directLoad")){
                             isDirectLoad= jObj.get("directLoad").getAsBoolean();

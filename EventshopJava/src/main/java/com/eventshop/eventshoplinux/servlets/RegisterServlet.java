@@ -49,8 +49,9 @@ public class RegisterServlet extends HttpServlet {
 	QueryJSONParser parser;
 	// Query query;
 	ActorSelection dataSourceSchedularActor;
-	ActorSelection queryActor;
+	//ActorSelection queryActor;
 	ActorSelection mainQueryActor;
+	ActorSelection scriptQueryActor;
 
 
 
@@ -82,8 +83,9 @@ public class RegisterServlet extends HttpServlet {
 //		AkkaActorSystem
 		actorSystem = (ActorSystem) config.getServletContext().getAttribute("AkkaActorSystem");
 		dataSourceSchedularActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/dataSourceSchedularActor");
-		queryActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/queryActor");
+		//queryActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/queryActor");
 		mainQueryActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/mainQueryActor");
+		//scriptQueryActor = actorSystem.actorSelection("akka://eventshop-actorSystem/user/queryScriptActor");
 
 		camelContext = CamelExtension.get(actorSystem).context();
 		preRegisterDataSourcesQueries();
@@ -160,7 +162,8 @@ public class RegisterServlet extends HttpServlet {
 //						query.setError();
 //					}
 
-					queryActor.tell(new QueryActor.DisableQuery(Integer.valueOf(qId)), null);
+					mainQueryActor.tell(new MainQueryActor.DisableQuery(Integer.valueOf(qId)), null);
+					//queryActor.tell(new QueryActor.DisableQuery(Integer.valueOf(qId)), null);
 					new ResponseJSON(response, query);
 					return;
 				} catch (Exception e) {

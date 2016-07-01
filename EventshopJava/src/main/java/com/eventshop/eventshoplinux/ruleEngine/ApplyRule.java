@@ -120,7 +120,7 @@ public class ApplyRule {
             }
             //DBCursor dbCursor = collection.find(query.get());
             LOGGER.info("queries: " + query.get().toString() + ", fields: " + queryFields.get());
-
+            System.out.println("queries: " + query.get().toString() + ", fields: " + queryFields.get());
             DBCursor dbCursor = collection.find(query.get(), queryFields.get());
             StringBuffer result = new StringBuffer();
 //            result.append("[");
@@ -129,7 +129,7 @@ public class ApplyRule {
             while (dbCursor.hasNext()) {
                 DBObject next = dbCursor.next();
                 st = new StringTokenizer(rules.getExtractFields(), ",");
-                System.out.println("DB LINE: "+next.toString());
+                //System.out.println("DB LINE: "+next.toString());
 
 //                while (st.hasMoreElements()) {
 //                    String field = String.valueOf(st.nextElement());
@@ -152,7 +152,7 @@ public class ApplyRule {
                 }
             }
             result.append("]");
-            System.out.println("Applied Rules: "+ result );
+            //System.out.println("Applied Rules: "+ result );
             return result;
 
 

@@ -604,7 +604,7 @@ public class DataSourceManagementDAO extends BaseDAO {
 		// "SELECT query_id,query_name,query_status FROM Query_Master WHERE dsmaster_creator=? OR dsmaster_creator=0";
 		String qrySql = user.getRoleId() == 1 ? adminDSListSql : adminDSListSql
 				+ userDSListSql;
-
+		log.info("dsquery:" + qrySql);
 		try {
 			if(con.isClosed())
 				con = this.connection();

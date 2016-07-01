@@ -24,6 +24,7 @@ public class QueryRoute extends RouteBuilder {
     public void configure() throws Exception {
 
 
+
         from("direct:mongoQueryRouteProducer")
                 .process(new Processor() {
                     @Override
@@ -58,6 +59,5 @@ public class QueryRoute extends RouteBuilder {
                     }
                 }).to("direct:commonQuery")
         ;
-
     }
 }

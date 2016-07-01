@@ -1,10 +1,12 @@
 package com.eventshop.eventshoplinux.camel;
 
+import com.eventshop.eventshoplinux.domain.common.FrameParameters;
 import com.eventshop.eventshoplinux.domain.datasource.DataSource;
 import com.eventshop.eventshoplinux.model.Emage;
 import com.eventshop.eventshoplinux.util.commonUtil.Config;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import org.apache.bcel.verifier.structurals.Frame;
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
@@ -16,14 +18,19 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.DoubleSummaryStatistics;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Created by aravindh on 5/13/15.
+ * edited by Siripen on 03/25/16.
+ * to fix the problem between initFrameparameter and queryFrameparameter
  */
 public class EmageRoute extends RouteBuilder{
 
     private final static Logger LOGGER = LoggerFactory.getLogger(EmageRoute.class);
+
 
     @Override
     public void configure() throws Exception {
@@ -34,13 +41,20 @@ public class EmageRoute extends RouteBuilder{
                                  //  System.out.println(("Out " + exchange.getIn().getBody(String.class)));
                                  DataSource dataSource = exchange.getIn().getHeader("datasource", DataSource.class);
                                     exchange.getOut().setHeaders(exchange.getIn().getHeaders());
-//                                 double latUnit = exchange.getIn().getHeader("latUnit", Double.class);
-//                                 double longUnit = exchange.getIn().getHeader("longUnit", Double.class);
-//                                 double nelat = exchange.getIn().getHeader("nelat", Double.class);
-//                                 double nelong = exchange.getIn().getHeader("nelong", Double.class);
-//                                 double swlat = exchange.getIn().getHeader("swlat", Double.class);
-//                                 double swlong = exchange.getIn().getHeader("swlong", Double.class);
-
+                                 double latUnit = exchange.getIn().getHeader("latUnit", Double.class);
+                                 double longUnit = exchange.getIn().getHeader("longUnit", Double.class);
+                                 double nelat = exchange.getIn().getHeader("nelat", Double.class);
+                                 double nelong = exchange.getIn().getHeader("nelong", Double.class);
+                                 double swlat = exchange.getIn().getHeader("swlat", Double.class);
+                                 double swlong = exchange.getIn().getHeader("swlong", Double.class);
+                                 long timeWindow = exchange.getIn().getHeader("timeWindow", Long.class);
+                                 System.out.println("timewindow: " + timeWindow);
+                                 long syncAtMilSec = 0;//exchange.getIn().getHeader("syncAtMilSec", Long.class);
+                                 FrameParameters initFP = dataSource.getInitParam();
+                                 System.out.println("init parameter in emageBuilder " + initFP.toJson());
+                                 FrameParameters queryFP = new FrameParameters(timeWindow, syncAtMilSec,
+                                         latUnit, longUnit, swlat, swlong, nelat, nelong);
+                                 System.out.println("query parameter in emageBuilder " + queryFP.toJson());
 
                                  Emage emage = new Emage();
                                  emage.setTheme(dataSource.getSrcTheme());
@@ -58,6 +72,20 @@ public class EmageRoute extends RouteBuilder{
                                  int cnt = 0;
                                  LOGGER.debug("Rows: " + numOfRows);
                                  LOGGER.debug("cols: " + numOfCols);
+                                 DoubleSummaryStatistics stats = values
+                                         .stream()
+                                         .mapToDouble(new ToDoubleFunction<Double>() {
+                                             @Override
+                                             public double applyAsDouble(Double x) {
+                                                 return x;
+                                             }
+                                         })
+                                         .summaryStatistics();
+
+                                 LOGGER.info("Highest number in List : {}", stats.getMax());
+                                 LOGGER.info("Lowest number in List : {}", stats.getMin());
+                                 emage.setMin(stats.getMin());
+                                 emage.setMax(stats.getMax());
 
                                  double[] image = new double[values.size()];
 
@@ -67,6 +95,7 @@ public class EmageRoute extends RouteBuilder{
 
                                  }
                                  emage.setImage(image);
+                                 /*
                                  Double min = 999999.9;
                                  Double max = 0.0;
                                  for (int i = 0; i < values.size(); i++) {
@@ -80,6 +109,7 @@ public class EmageRoute extends RouteBuilder{
 
                                  emage.setMin(min);
                                  emage.setMax(max);
+                                    */
 
                                  long endTime = (long) Math.ceil(System.currentTimeMillis() / dataSource.getInitParam().getTimeWindow()) * dataSource.getInitParam().getTimeWindow() + dataSource.getInitParam().getSyncAtMilSec();
                                  Date startTimeStr = new Date(endTime - dataSource.getInitParam().getTimeWindow());
@@ -92,12 +122,18 @@ public class EmageRoute extends RouteBuilder{
                                  emage.setStartTimeStr(startTimeStr.toString());
                                  emage.setEndTimeStr(endTimeStr.toString());
                                  exchange.getOut().setBody(emage);
-
+                                 LOGGER.info("emageeeeee in EmageRoute: " + emage.toJson().toString());
                                  exchange.getOut().setHeader("dsID", dataSource.getSrcID());
                                  String filepath = Config.getProperty("tempDir") + "ds" + dataSource.getSrcID();
 
                                  exchange.getOut().setHeader("filepath", filepath);
-                                 exchange.getOut().setHeader("createEmageFile", exchange.getIn().getHeader("createEmageFile"));
+                                 if(exchange.getIn().getHeader("createEmageFile") != null){
+                                     System.out.println("createEmageFile:" + exchange.getIn().getHeader("createEmageFile"));
+                                     exchange.getOut().setHeader("createEmageFile", exchange.getIn().getHeader("createEmageFile"));
+                                 } else{
+                                     System.out.println("createEmageFile: null");
+                                     exchange.getOut().setHeader("createEmageFile", false);
+                                 }
                                  JsonParser parser = new JsonParser();
                                  JsonObject jObj = parser.parse(dataSource.getWrapper().getWrprKeyValue()).getAsJsonObject();
                                  int zoomFactor=1;
@@ -108,9 +144,11 @@ public class EmageRoute extends RouteBuilder{
 
 
                                  System.out.println("I was here until zoom factor..... ");
-
+                                 List<Emage> emageList = new ArrayList<Emage>(zoomFactor);
+                                 emageList.add(emage);
 
                                  //// Temp code added coz camel route  "direct:multiEmage is not connecting....
+                                 /*
 
                                  int zoomValue=2;
 //                                 Emage emage = exchange.getIn().getBody(Emage.class);
@@ -128,9 +166,11 @@ public class EmageRoute extends RouteBuilder{
                                  System.out.println("Initial Cols: "+cols);
                                  double[][] image2D = new double[rows][cols];
                                  double[] image1 = emage.getImage();
+                                 System.out.println("image size: " + image1.length);
                                  cnt=0;
                                  for(int i=0;i<rows;i++){
                                      for(int j=0;j<cols;j++){
+                                         LOGGER.info("row,col,index:" + i +"," + j + "," + cnt);
                                          image2D[i][j]=image1[cnt];
                                          cnt++;
                                      }
@@ -217,6 +257,7 @@ public class EmageRoute extends RouteBuilder{
                                      }
 
                                  }
+                                 */
                                  int emageLayerCnt=0;
                                  for(Emage emg : emageList){
                                      ObjectMapper mapper = new ObjectMapper();
@@ -238,12 +279,14 @@ public class EmageRoute extends RouteBuilder{
                          }
 
                 )
-                .choice()
-                .when(header("zoomFactor").isGreaterThan(1))
-                .to("direct:multiEmage")
-//                .choice()
-//                .when(header("createEmageFile").isNotEqualTo(false))
 //                .to("direct:emageJson")
+
+//                .choice()
+//                .when(header("zoomFactor").isGreaterThan(1))
+//                .to("direct:multiEmage")
+                .choice()
+                .when(header("createEmageFile").isNotEqualTo(false))
+                .to("direct:emageJson")
 
 
 //                .multicast().parallelProcessing().to("direct:emageJson", "direct:emageBin")
