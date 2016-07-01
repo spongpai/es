@@ -124,15 +124,6 @@
                     <!--  <h4 class="list-gorup-item-heading">Dataset</h4>-->
                     Dataset:
                     <select id="dsname">
-                        <option value="STTfmbtest4">Krumbs mail</option>
-                        <option value="STTfood_instagram">Food Instagram</option>
-                        <option value="70">myuci-ngss-uci</option>
-                        <option value="71">places-ngss-uci</option>
-                        <option value="72">smartcities-pspl-in</option>
-                        <option value="77">ucicomplaints-ngss-uci</option>
-                        <option value="73">uciconnect-ngss-uci</option>
-                        <option value="74">uciphotos-ngss-uci</option>
-                        <option value="75">viznotes-ngss-uci</option>
                     </select>
                 </li>
                 <!-- Location -->
@@ -162,14 +153,20 @@
                     Grid Resolution
 
                     <div class="grid-slider" id="grid-lat-slider"></div>
-                    <div class="control-label">Latitude: <span id="gridlat">0.5</span></div>
+                    <div class="control-label">Latitude: <span id="gridlat">0.1</span></div>
 
                     <div class="grid-slider" id="grid-lng-slider"></div>
-                    <div class="control-label">Longitude: <span id="gridlng">0.5</span></div>
+                    <div class="control-label">Longitude: <span id="gridlng">0.1</span></div>
+                </li>
+
+                <!-- Rule ID -->
+                <li class="list-group-item">
+                    RuleID
+                    <input type="text" id="ruleid">
                 </li>
 
                 <!-- Search Theme -->
-                <li class="list-group-item">
+                <li class="list-group-item" style="display: none;">
                     <!--  <h4 class="list-group-item-heading">Theme</h4>-->
                     Theme
                     <select id="theme-select" name="character"  multiple="multiple">
@@ -202,6 +199,8 @@
             <div id="visualization"></div>
             <div style="height:100px">
                 <!-- Container to hold success/error messages -->
+                <div id="popup_id" style="display:none;text-size:large;text-weigth:bold">Processing your request................</div>
+
                 <div id="report-message"></div>
                 <!-- Legend Container -->
                 <div id="rainbow-legend-container" class="container well" style="display:none;">
@@ -222,30 +221,37 @@
     <!-- MAP Dispaly Row -->
     <div class="row">
         <!-- Map Container -->
-        <div class="col-sm-11">
+        <div class="col-sm-6">
             <div class="well" id="right-col">
                 <div id="map_canvas" style="max-width: 100%; height: auto;"></div>
-
             </div>
-
         </div><!-- End Right Column -->
+        <div class="col-sm-5">
+            <!-- E-mage query -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">E-mage Query</h4>
+                </div>
+                <div class="panel-body">
+                    <div id="emage-query" style="white-space:pre-wrap"></div>
+                </div>
+            </div>
+            <!-- E-mage output -->
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h4 class="panel-title">E-mage Output</h4>
+                </div>
+                <div class="panel-body">
+                    <div id="emage-output" style="white-space:pre-wrap"></div>
+                </div>
+            </div>
+        </div>
     </div>	<!-- End MAP Dispaly Row -->
 
     <!-- E-mage Info Row -->
     <div class="row" id="emage-well">
         <!-- Left column holds query-->
         <div class="col-sm-10">
-            <div class="well">
-                <!-- E-mage query -->
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h4 class="panel-title">E-mage Query</h4>
-                    </div>
-                    <div class="panel-body">
-                        <div id="emage-query" style="white-space:pre-wrap"></div>
-                    </div>
-                </div>
-            </div>
             <div class="row">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -260,15 +266,7 @@
 
         <!-- Right column holds output -->
         <div class="col-sm-7">
-            <!-- E-mage output -->
-            <div class="panel panel-default" style="display:none">
-                <div class="panel-heading">
-                    <h4 class="panel-title">E-mage Output</h4>
-                </div>
-                <div class="panel-body">
-                    <div id="emage-output" style="white-space:pre-wrap"></div>
-                </div>
-            </div>
+
         </div><!-- End right column -->
     </div><!-- End E-mage row -->
 </div> <!--  End Container -->

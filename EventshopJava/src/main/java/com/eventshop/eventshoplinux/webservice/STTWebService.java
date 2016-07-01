@@ -317,7 +317,7 @@ public class STTWebService {
         for(int i = 0; i < cellList.size(); i++){
             if(cellList.get(i) != 0.0){
                 JsonObject sttList = new JsonObject();
-                sttList.add("orderedList", gridSTT.get(i).getAsJsonArray());
+                sttList.add("orderedlist", gridSTT.get(i).getAsJsonArray());
 
                 JsonObject stel = new JsonObject();
                 stel.add("cell", index2rectangle(i, fp));
