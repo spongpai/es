@@ -39,7 +39,6 @@ public class EventshopUtils {
     }
 
     public static ConcurrentHashMap<String, Object> getSyntaxAndOperators(String s) {
-        LOGGER.debug("converting syntax and operators to JSON: " + s +  "\nDONE!");
         ConcurrentHashMap<String, Object> finalResult = EventshopUtils.convertSyntaxToJson(s);
         ConcurrentHashMap<String, List<String>> operatorMap = new ConcurrentHashMap<>();
 
