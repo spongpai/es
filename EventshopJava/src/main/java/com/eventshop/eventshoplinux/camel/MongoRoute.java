@@ -28,10 +28,7 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.StringTokenizer;
+import java.util.*;
 
 /**
  * Created by aravindh on 5/8/15.
@@ -191,8 +188,8 @@ public class MongoRoute extends RouteBuilder {
 
                         RuleDao ruleDao = new RuleDao();
                         Rules rules = ruleDao.getRules(mongoQueryMessage.getDataSourceID());
-                        System.out.println("RuleId: "+ rules.getRuleID());
-                        System.out.println("Rules:-1 : " + rules.toString());
+                        //System.out.println("RuleId: "+ rules.getRuleID());
+                        //System.out.println("Rules:-1 : " + rules.toString());
 
 
                         DataSourceManagementDAO dataSourceManagementDAO = new DataSourceManagementDAO();
@@ -210,7 +207,7 @@ public class MongoRoute extends RouteBuilder {
                         // Building the query parameters from Rules
                         QueryBuilder query = new QueryBuilder();
                         List<Rule> rulesList = rules.getRules();//TODO
-                        System.out.println("Rule List: "+rulesList.toString());
+                        //System.out.println("Rule List: "+rulesList.toString());
                         if (rulesList == null || rulesList.isEmpty()) {
                             rulesList = new ArrayList<Rule>();
                         }
@@ -251,7 +248,7 @@ public class MongoRoute extends RouteBuilder {
                         exchange.getOut().setHeader("createEmageFile", false);
                     }
                 })
-                .to("direct:applyandExecuteRule")
+//                .to("direct:applyandExecuteRule")
                 .to("direct:applySpatialWrapper");
 
         from("direct:applySpatialWrapper")
@@ -262,28 +259,34 @@ public class MongoRoute extends RouteBuilder {
                         LOGGER.info("Query End Time:" + System.currentTimeMillis());
                         LOGGER.info("{}", new Date());
                         final String body = exchange.getIn().getBody(String.class);
-                        System.out.println("STT:"+body);
+                        //System.out.println("STT:"+body);
                         JSONObject obj = new JSONObject("{ \"list\" : " + body + "}");
 //                        LOGGER.info("{ \"list \" :" + exchange.getIn().getBody(String.class) + "}");
                         List<MongoResponse> list = new ArrayList<MongoResponse>();
                         JSONArray array = obj.getJSONArray("list");
+                        JSONObject aObj = null;
                         try {
                             for (int i = 0; i < array.length(); i++) {
                                 MongoResponse mongoResponse = new MongoResponse();
-                                JSONObject aObj = array.getJSONObject(i);
-                                if(aObj.has("value"))
-                                    mongoResponse.setValue(aObj.getDouble("value"));
-                                else
-                                    mongoResponse.setValue(1.0);
+                                aObj = array.getJSONObject(i);
+                                Double themeValue = 1.0;
+                                if(aObj.has("stt_what")){
+                                    Iterator<String> keys = aObj.getJSONObject("stt_what").keys();
+                                    if(keys.hasNext()){
+                                        String key = keys.next();
+                                        JSONObject what = aObj.getJSONObject("stt_what").getJSONObject(key);
+                                        if(what.has("value") && (what.get("value") instanceof Double))
+                                            themeValue = what.getDouble("value");
+                                    }
+                                }
+                                else if(aObj.has("value") && aObj.get("value") instanceof Double) {
+                                    themeValue = aObj.getDouble("value");
+                                }
+
+                                mongoResponse.setValue(themeValue);
 
                                 ELocation loc = new ELocation();
-                                if(aObj.has("loc")){
-                                    loc.setLon(array.getJSONObject(i).getJSONObject("loc").getDouble("lon"));
-                                    loc.setLat(array.getJSONObject(i).getJSONObject("loc").getDouble("lat"));
-                                } else if(aObj.has("where")){
-                                    loc.setLat(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("latitude"));
-                                    loc.setLon(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude"));
-                                } else if(aObj.has("stt_where")){
+                                if(aObj.has("stt_where")){
                                     if(aObj.getJSONObject("stt_where").has("point")) {                   // stt_where: {point: [lat, lon]}
                                         JSONArray point = aObj.getJSONObject("stt_where").getJSONArray("point");
                                         loc.setLat(point.getDouble(0));
@@ -304,12 +307,19 @@ public class MongoRoute extends RouteBuilder {
                                         loc.setLat(aObj.getJSONObject("stt_where").getDouble("lat"));   // stt_where: {lat: double, lon: double}
                                         loc.setLon(aObj.getJSONObject("stt_where").getDouble("lon"));
                                     }
+                                } else if(aObj.has("where")){
+                                    loc.setLat(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("latitude"));
+                                    loc.setLon(aObj.getJSONObject("where").getJSONObject("geo_location").getDouble("longitude"));
+                                } else if(aObj.has("loc")){
+                                    loc.setLon(array.getJSONObject(i).getJSONObject("loc").getDouble("lon"));
+                                    loc.setLat(array.getJSONObject(i).getJSONObject("loc").getDouble("lat"));
                                 }
 
                                 mongoResponse.setLoc(loc);
                                 list.add(mongoResponse);
                             }
                         } catch (Exception e) {
+                            LOGGER.error("cannot parse json object: " + aObj.toString());
                             e.printStackTrace();
                         }
 

@@ -74,7 +74,7 @@ public class RuleRoute extends RouteBuilder {
                         JSONObject jsonObject = new JSONObject("{ \"list\" : " + body + "}");
                         JSONArray jsonArray = jsonObject.getJSONArray("list");
                         LOGGER.info("******************");
-                        System.out.println("customEmage: " + jsonArray.toString());
+                        LOGGER.debug("customEmage: " + jsonArray.toString());
                         List<String> sttList = new ArrayList<String>();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             JSONObject jsonObj = jsonArray.getJSONObject(i);
@@ -156,7 +156,7 @@ public class RuleRoute extends RouteBuilder {
                             stt.setTimestamp(time);
                             sttList.add(stt.toString());
                         }
-                        System.out.println("STT List:" + sttList);
+                        LOGGER.debug("STT List:" + sttList);
                         exchange.getOut().setBody(sttList);
                         //long endTimeToCheck = exchange.getIn().getHeader("endTimeToCheck", Long.class);
                         //long startTimeToCheck = exchange.getIn().getHeader("timeToCheck", Long.class);

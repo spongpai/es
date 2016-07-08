@@ -88,11 +88,6 @@ public class DataFormatRoute extends RouteBuilder {
                         Region usWest2 = Region.getRegion(Regions.US_WEST_2);
                         sqs.setRegion(usWest2);
 
-
-                        System.out.println("===========================================");
-                        System.out.println("Getting Started with Amazon SQS");
-                        System.out.println("===========================================\n");
-
                         String queueUrl = ds.getUrl();
 
                         //String filePath = ds.getUrl();
@@ -118,18 +113,18 @@ public class DataFormatRoute extends RouteBuilder {
 
                                     }
                                 } catch (AmazonServiceException ase) {
-                                    System.out.println("Caught an AmazonServiceException, which means your request made it " +
+                                    LOGGER.error("Caught an AmazonServiceException, which means your request made it " +
                                             "to Amazon SQS, but was rejected with an error response for some reason.");
-                                    System.out.println("Error Message:    " + ase.getMessage());
-                                    System.out.println("HTTP Status Code: " + ase.getStatusCode());
-                                    System.out.println("AWS Error Code:   " + ase.getErrorCode());
-                                    System.out.println("Error Type:       " + ase.getErrorType());
-                                    System.out.println("Request ID:       " + ase.getRequestId());
+                                    LOGGER.error("Error Message:    " + ase.getMessage());
+                                    LOGGER.error("HTTP Status Code: " + ase.getStatusCode());
+                                    LOGGER.error("AWS Error Code:   " + ase.getErrorCode());
+                                    LOGGER.error("Error Type:       " + ase.getErrorType());
+                                    LOGGER.error("Request ID:       " + ase.getRequestId());
                                 } catch (AmazonClientException ace) {
-                                    System.out.println("Caught an AmazonClientException, which means the client encountered " +
+                                    LOGGER.error("Caught an AmazonClientException, which means the client encountered " +
                                             "a serious internal problem while trying to communicate with SQS, such as not " +
                                             "being able to access the network.");
-                                    System.out.println("Error Message: " + ace.getMessage());
+                                    LOGGER.error("Error Message: " + ace.getMessage());
                                 }
                             } else{
                                 emptyQueye = true;
@@ -260,7 +255,7 @@ public class DataFormatRoute extends RouteBuilder {
                         exchange.getOut().setBody(exchange.getIn().getBody());
                         DataSource ds = exchange.getIn().getHeader("datasource", DataSource.class);
                         JsonParser parser = new JsonParser();
-                        System.out.println("***********************************************************\n" + ds.getWrapper().getWrprKeyValue());
+                        LOGGER.debug("***********************************************************\n" + ds.getWrapper().getWrprKeyValue());
                         JsonObject jObj = parser.parse(ds.getWrapper().getWrprKeyValue().trim()).getAsJsonObject();
                         boolean isDirectLoad=false;
                         if (jObj.has("directLoad")){
@@ -338,7 +333,7 @@ public class DataFormatRoute extends RouteBuilder {
                                 }
                             } else {
                                 to = "direct:" + exchange.getIn().getHeader("dsType");
-                                System.out.println("direct from kafka consumer to mongodb: dsType:" + to);
+                                LOGGER.info("direct from kafka consumer to mongodb: dsType:" + to);
                                 context.addRoutes(new DynamicRouteAdder(context, uri, to));
 
                             }

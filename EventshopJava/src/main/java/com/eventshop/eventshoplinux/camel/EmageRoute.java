@@ -31,7 +31,6 @@ public class EmageRoute extends RouteBuilder{
 
     private final static Logger LOGGER = LoggerFactory.getLogger(EmageRoute.class);
 
-
     @Override
     public void configure() throws Exception {
         from("direct:emageBuilder")
@@ -48,13 +47,13 @@ public class EmageRoute extends RouteBuilder{
                                  double swlat = exchange.getIn().getHeader("swlat", Double.class);
                                  double swlong = exchange.getIn().getHeader("swlong", Double.class);
                                  long timeWindow = exchange.getIn().getHeader("timeWindow", Long.class);
-                                 System.out.println("timewindow: " + timeWindow);
+                                 LOGGER.debug("timewindow: " + timeWindow);
                                  long syncAtMilSec = 0;//exchange.getIn().getHeader("syncAtMilSec", Long.class);
                                  FrameParameters initFP = dataSource.getInitParam();
-                                 System.out.println("init parameter in emageBuilder " + initFP.toJson());
+                                 LOGGER.debug("init parameter in emageBuilder " + initFP.toJson());
                                  FrameParameters queryFP = new FrameParameters(timeWindow, syncAtMilSec,
                                          latUnit, longUnit, swlat, swlong, nelat, nelong);
-                                 System.out.println("query parameter in emageBuilder " + queryFP.toJson());
+                                 LOGGER.debug("query parameter in emageBuilder " + queryFP.toJson());
 
                                  Emage emage = new Emage();
                                  emage.setTheme(dataSource.getSrcTheme());
@@ -128,10 +127,10 @@ public class EmageRoute extends RouteBuilder{
 
                                  exchange.getOut().setHeader("filepath", filepath);
                                  if(exchange.getIn().getHeader("createEmageFile") != null){
-                                     System.out.println("createEmageFile:" + exchange.getIn().getHeader("createEmageFile"));
+                                     LOGGER.debug("createEmageFile:" + exchange.getIn().getHeader("createEmageFile"));
                                      exchange.getOut().setHeader("createEmageFile", exchange.getIn().getHeader("createEmageFile"));
                                  } else{
-                                     System.out.println("createEmageFile: null");
+                                     LOGGER.debug("createEmageFile: null");
                                      exchange.getOut().setHeader("createEmageFile", false);
                                  }
                                  JsonParser parser = new JsonParser();
@@ -143,7 +142,7 @@ public class EmageRoute extends RouteBuilder{
                                  exchange.getOut().setHeader("zoomFactor",zoomFactor);
 
 
-                                 System.out.println("I was here until zoom factor..... ");
+                                 LOGGER.info("I was here until zoom factor..... ");
                                  List<Emage> emageList = new ArrayList<Emage>(zoomFactor);
                                  emageList.add(emage);
 
@@ -262,11 +261,16 @@ public class EmageRoute extends RouteBuilder{
                                  for(Emage emg : emageList){
                                      ObjectMapper mapper = new ObjectMapper();
                                      if (emageLayerCnt == 0) {
-                                         mapper.writeValue(new File(Config.getProperty("datasourceJsonLoc") + exchange.getIn().getHeader("dsID") + ".json"), emg);
+                                         String dsIDFilename = exchange.getIn().getHeader("dsID") + ".json";
+                                         File file = new File(dsIDFilename);
+                                         if(!file.exists()) {
+                                             file.createNewFile();
+                                         }
+                                         mapper.writeValue(new File(Config.getProperty("datasourceJsonLoc") + dsIDFilename), emg);
                                      } else {
                                          mapper.writeValue(new File(Config.getProperty("datasourceJsonLoc") + exchange.getIn().getHeader("dsID") + "_layer" + emageLayerCnt + ".json"), emg);
                                      }
-                                     System.out.println("Done Writting layer"+emageLayerCnt);
+                                     LOGGER.info("Done Writting layer"+emageLayerCnt);
 
                                      emageLayerCnt++;
                                  }
@@ -279,14 +283,14 @@ public class EmageRoute extends RouteBuilder{
                          }
 
                 )
-//                .to("direct:emageJson")
+                .choice()
+                .when(header("zoomFactor").isGreaterThan(1))
+                .to("direct:multiEmage")
+                .multicast().to("direct:searchAndRunQuery", "direct:runAlertForDS")
 
 //                .choice()
-//                .when(header("zoomFactor").isGreaterThan(1))
-//                .to("direct:multiEmage")
-                .choice()
-                .when(header("createEmageFile").isNotEqualTo(false))
-                .to("direct:emageJson")
+//                .when(header("createEmageFile").isNotEqualTo(false))
+//                .to("direct:emageJson")
 
 
 //                .multicast().parallelProcessing().to("direct:emageJson", "direct:emageBin")
@@ -388,25 +392,27 @@ public class EmageRoute extends RouteBuilder{
 //                            }
 //                        });
 
-                from("direct:emageJson")
-                    .marshal().json(JsonLibrary.Jackson)
-                    .process(new Processor() {
-                        @Override
-                        public void process(Exchange exchange) throws Exception {
-                           LOGGER.info("Writing JSON!!!!");
-                            exchange.getOut().setBody(exchange.getIn().getBody(String.class));
-                            exchange.getOut().setHeader("CamelFileName", exchange.getIn().getHeader("dsID") + ".json");
-                            exchange.getOut().setHeader("dsID", exchange.getIn().getHeader("dsID"));
-                           LOGGER.info("Done...");
-                        }
-                    })
-                        .to("file:" + Config.getProperty("datasourceJsonLoc") + "?noop=true&charset=iso-8859-1")
-                        .process(new Processor() {
-                            @Override
-                            public void process(Exchange exchange) throws Exception {
-                                exchange.getOut().setHeader("dsID", exchange.getIn().getHeader("dsID"));
+        from("direct:emageJson")
+                .marshal().json(JsonLibrary.Jackson)
+                .process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        LOGGER.info("Writing JSON!!!!");
+                        exchange.getOut().setBody(exchange.getIn().getBody(String.class));
+                        exchange.getOut().setHeader("CamelFileName", exchange.getIn().getHeader("dsID") + ".json");
+                        exchange.getOut().setHeader("dsID", exchange.getIn().getHeader("dsID"));
+                        LOGGER.info("Done...");
+                    }
+                })
+                .to("file:" + Config.getProperty("datasourceJsonLoc") + "?noop=true&charset=iso-8859-1")
+                .process(new Processor() {
+                    @Override
+                    public void process(Exchange exchange) throws Exception {
+                        exchange.getOut().setHeader("dsID", exchange.getIn().getHeader("dsID"));
                             }
                         })
+//                        .to("direct:searchAndRunQuery")
+//                        .to("direct:runAlertForDS")
                         .multicast().to("direct:searchAndRunQuery", "direct:runAlertForDS")
                 ;
 

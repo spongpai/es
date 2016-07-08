@@ -31,7 +31,7 @@ public class MediaJsonRoute extends RouteBuilder {
                 .process(new Processor() {
                     @Override
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("media JSON: inside media json process" );
+                        LOGGER.debug("media JSON: inside media json process" );
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
 
                         String body = exchange.getIn().getBody(String.class);
@@ -91,7 +91,7 @@ public class MediaJsonRoute extends RouteBuilder {
                 .process(new Processor() {
                     @Override
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("inside mediaJsonSplitList");
+                        LOGGER.debug("inside mediaJsonSplitList");
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         String body = exchange.getIn().getBody(String.class);
 

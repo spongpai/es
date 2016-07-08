@@ -249,7 +249,7 @@ public class DataProcess implements Runnable {
 			// log.info("count:" + count + ", " + isRunning + ", " +
 			// it.hasNext());
 			while (it.hasNext()) {
-				System.out.println("it hasnext elements works.");
+				System.out.println("it has next elements works.");
 				if (!isRunning)
 					break;
 				Emage e = it.next();

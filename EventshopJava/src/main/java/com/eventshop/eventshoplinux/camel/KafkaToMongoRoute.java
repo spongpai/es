@@ -152,10 +152,22 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                     if(asJsonObject.getAsJsonObject("stt_where").has("lon"))
                                         lon = asJsonObject.getAsJsonObject("stt_where").get("lon").getAsDouble();
 
+                                    point.add(new JsonPrimitive(lat));
+                                    point.add(new JsonPrimitive(lon));
+                                    asJsonObject.get("stt_where").getAsJsonObject().add("point", point);
+
+                                } else if(asJsonObject.has("loc")){
+                                    if(asJsonObject.getAsJsonObject("loc").has("lat"))
+                                        lat = asJsonObject.getAsJsonObject("loc").get("lat").getAsDouble();
+                                    if(asJsonObject.getAsJsonObject("loc").has("lon"))
+                                        lon = asJsonObject.getAsJsonObject("loc").get("lon").getAsDouble();
+                                    JsonObject sttWhere = new JsonObject();
+                                    sttWhere.addProperty("lat", lat);
+                                    sttWhere.addProperty("long", lon);
+                                    sttWhere.add("point", point);
+                                    asJsonObject.add("stt_where", sttWhere);
                                 }
-                                point.add(new JsonPrimitive(lat));
-                                point.add(new JsonPrimitive(lon));
-                                asJsonObject.get("stt_where").getAsJsonObject().add("point", point);
+
                             }
                             DBObject dbObj = (DBObject) JSON.parse(asJsonObject.toString());
                             //Add the document to the document list to update as a batch
@@ -362,7 +374,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                  exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                                  List<DBObject> dbObjectList = new ArrayList<DBObject>();
 
-                                 System.out.println("Consuming from Kafka in Json");
+                                 //System.out.println("Consuming from Kafka in Json");
 
                                  String ds = exchange.getIn().getHeader("kafka.TOPIC", String.class);
                                  LOGGER.info("DS: " + ds);
@@ -374,16 +386,16 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                  for (String result : resultList) {
                                      LOGGER.debug("Result List ****** : " + result);
                                  }
-                                 System.out.println("1.Before Grok...");
+                                 LOGGER.debug("1.Before Grok...");
                                  Grok grok = Grok.create("src/main/resources/patterns");
-                                 System.out.println("2.After Grok...");
+                                 LOGGER.debug("2.After Grok...");
                                  final Configuration configuration = Configuration.builder()
                                          .jsonProvider(new JacksonJsonNodeJsonProvider())
                                          .mappingProvider(new JacksonMappingProvider())
                                          .build();
-                                 System.out.println("3.After Configuration...");
+                                 LOGGER.debug("3.After Configuration...");
                                  for (String input : resultList) {
-                                     System.out.println("4.Into Loop...");
+                                     LOGGER.debug("4.Into Loop...");
                                      String syntax = dataSource.getSyntax();
                                      if (!syntax.startsWith("{")) {
                                          syntax = "{" + syntax + "}";
@@ -419,7 +431,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                                          grok.compile(expression);
                                                          Match match = grok.match(value);
                                                          match.captures();
-                                                         System.out.println("match is " + match.toJson(true));
+                                                         //System.out.println("match is " + match.toJson(true));
                                                          JsonObject jsonObject = parser.parse(match.toJson()).getAsJsonObject();
                                                          value = jsonObject.get(Key.replace(".", "_")).getAsString();
                                                      }
@@ -535,8 +547,6 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                  LOGGER.info("Consuming from Kafka in media Json******");
                                  exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                                  List<DBObject> dbObjectList = new ArrayList<DBObject>();
-
-                                 System.out.println("Consuming from Kafka in media Json");
 
                                  String ds = exchange.getIn().getHeader("kafka.TOPIC", String.class);
                                  LOGGER.info("DS: " + ds);
@@ -750,7 +760,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                                  //    System.out.println("Inserting tweets with geo location. Tweet size is " + sttList.size());
                                  String dsId = dataSource.getSrcID();
                                  String mongoPath = "mongodb:mongoBean?database=" + Config.getProperty("DSDB") + "&collection=ds" + dsId + "&operation=insert";
-                                 System.out.println("mPath while insert in file route is " + mongoPath);
+                                 //System.out.println("mPath while insert in file route is " + mongoPath);
                                  exchange.getOut().setHeader("mPath", mongoPath);
                                  exchange.getOut().setBody(sttList);
                                  exchange.getOut().setHeader("datasource", dataSource);
@@ -773,7 +783,7 @@ public class KafkaToMongoRoute extends RouteBuilder {
                 .process(new Processor() {
                     @Override
                     public void process(Exchange exchange) throws Exception {
-                        System.out.println("Direct Load Initiated....");
+                        //System.out.println("Direct Load Initiated....");
 //                                    List<DBObject> dbObjectList = new ArrayList<DBObject>();
                         exchange.getOut().setHeaders(exchange.getIn().getHeaders());
                         String ds = exchange.getIn().getHeader(KafkaConstants.TOPIC, String.class);

@@ -232,12 +232,16 @@ public class Emage {
         emage.addProperty("max", this.max);
 
         // Create JsonArray for image
-        String gridStr = "[";
+        StringBuilder gridStr = new StringBuilder();
         for (int i = 0; i < image.length; i++) {
-            gridStr = gridStr + image[i] + ",";
+            gridStr.append(image[i] + ",");
         }
-        gridStr = gridStr.substring(0, gridStr.length() - 1) + "]";
-        JsonArray gridJson = (new JsonParser()).parse(gridStr).getAsJsonArray();
+        String gridArrayStr = "[]";
+        if(gridStr.length() > 0)
+            gridArrayStr = "[" + gridStr.toString().substring(0, gridStr.length() - 1) + "]";
+        else
+            System.out.println("----- testing ----- gridString \n" + gridArrayStr + "\n-----------------------");
+        JsonArray gridJson = (new JsonParser()).parse(gridArrayStr).getAsJsonArray();
         emage.add("image", gridJson);
 
         return emage;

@@ -68,8 +68,10 @@ public class QueryService {
 		user.setId(userId);
 		QueryListDAO queryDAO = new QueryListDAO();
 		Query[] qryListArray = new Query[] {};
+		System.out.println("test get query list");
 		List<Query> queryList = queryDAO.getUserQuery(user);
 		Query[] qryList = queryList.toArray(qryListArray);
+		System.out.println("done get query list " + qryList.length);
 		return qryList;
 	}
 

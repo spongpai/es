@@ -222,7 +222,7 @@ public class MasterQueryActor extends UntypedConsumerActor {
                             break;
                         }
                     }
-                    System.out.println("result eamge: " + resultEmage.getTheme() + "\n-----------------");
+                    LOGGER.debug("result eamge: " + resultEmage.getTheme() + "\n-----------------");
                     emageMap.put("q" + (i + 1), resultEmage);
                 }
             }
@@ -277,13 +277,13 @@ public class MasterQueryActor extends UntypedConsumerActor {
             String spatial_wrapper = query.get("spatial_wrapper").getAsString();
             MongoQueryMessage mongoQueryMessage = new MongoQueryMessage(Integer.parseInt(id), timeToCheck, endTimeToCheck
                     , neLat, neLon, swLat, swLon, latUnit, lonUnit, spatial_wrapper);
-            System.out.println("mongoQueryMessage: " + mongoQueryMessage.toString());
+            LOGGER.debug("mongoQueryMessage: \n" + mongoQueryMessage.toString());
             Future<Object> future = Patterns.ask(ruleRouteProducerActor, mongoQueryMessage, timeout);
 
             CamelMessage camelMessage = (CamelMessage) Await.result(future, duration);
             Object body = camelMessage.body();
             Emage emage = camelMessage.getBodyAs(Emage.class, getCamelContext());
-            System.out.println("---- emage ---- " + emage.toString());
+            LOGGER.debug("---- emage ---- \n" + emage.toString());
             return emage;
             /*
             if(body.getClass().getName().contains("Emage")){

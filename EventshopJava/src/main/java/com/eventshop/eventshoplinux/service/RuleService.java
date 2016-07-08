@@ -8,6 +8,7 @@ import com.eventshop.eventshoplinux.domain.rule.DSRuleElement;
 import com.eventshop.eventshoplinux.model.RuleResponse;
 import com.eventshop.eventshoplinux.ruleEngine.Rules;
 import com.google.gson.Gson;
+import com.typesafe.config.ConfigException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,10 +78,20 @@ public class RuleService {
             dsr.setRuleID(rules.getRuleID());
             dsr.setRuleName(rules.getRuleName());
             dsr.setDataSourceID(rules.getSource().replace("ds", ""));
-            System.out.println("rules.getSource() :::  " + rules.getSource());
-            dsr.setDataSourceName(DataCache.registeredDataSources.get(rules.getSource().substring(2, rules.getSource().length())).getSrcName());
-            ruleElements[cnt]=dsr;
-            cnt++;
+            //System.out.println("rules.getSource() :::  " + rules.getSource());
+            try {
+                String id = rules.getSource().substring(2, rules.getSource().length());
+                if(DataCache.registeredDataSources.containsKey(id)){
+                    dsr.setDataSourceName(DataCache.registeredDataSources.get(id).getSrcName());
+                    ruleElements[cnt]=dsr;
+                    cnt++;
+                }
+            }
+            catch(NullPointerException e){
+                LOGGER.error(rules.getSource() + "DataSource Name is NULL");
+                e.printStackTrace();
+            }
+
         }
         cnt=0;
         return ruleElements;
